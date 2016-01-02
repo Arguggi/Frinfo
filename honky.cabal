@@ -20,6 +20,7 @@ library
                      , async
                      , attoparsec
                      , free
+                     , safe
                      , text
                      , time
   default-language:    Haskell2010

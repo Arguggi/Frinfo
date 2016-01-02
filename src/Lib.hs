@@ -12,11 +12,13 @@ import qualified Data.Text                as T
 import qualified Data.Text.IO             as TIO
 import           Data.Time.Clock          (getCurrentTime)
 import           Data.Time.Format         (defaultTimeLocale, formatTime)
+import           Safe
 import           System.IO
 import           Text.Printf
 
-data Dzen next = Separator next | Icon Color Path next | Script (IO T.Text) next | Done
+data Dzen next = Separator next | Icon Color Path next | Script (IO T.Text) next | ScriptState (State -> IO T.Text) State next | Done
 data Player = Spotify | Mpd | None
+data State = State [CpuStat]
 
 type Color = T.Text
 type Path = T.Text
@@ -28,18 +30,22 @@ type User = Integer
 type System = Integer
 type Idle = Integer
 
+defaultStat :: CpuStat
+defaultStat = CpuStat 0 0 0
+
 headphoneColor :: Color
 headphoneColor = "#ea8b2a"
+
+ramColor :: Color
+ramColor = "#e86f0c"
 
 secondsDelay :: Int -> Int
 secondsDelay x = x * 1000000
 
 separator :: Free Dzen ()
---separator = Free (Separator (Pure ()))
 separator = liftF (Separator ())
 
 icon :: Color -> Path -> Free Dzen ()
---icon color path  = Free (Icon color path (Pure ()))
 icon color path  = liftF (Icon color path ())
 
 done :: Free Dzen ()
@@ -48,10 +54,14 @@ done = Free Done
 script :: IO T.Text -> Free Dzen ()
 script x = liftF (Script x ())
 
+scriptState :: (State -> IO T.Text) -> State -> Free Dzen ()
+scriptState x state = liftF (ScriptState x state ())
+
 instance Functor Dzen where
     fmap f (Separator x) = Separator (f x)
     fmap f (Icon color path x) = Icon color path (f x)
     fmap f (Script text x) = Script text (f x)
+    fmap f (ScriptState text state x) = ScriptState text state (f x)
     fmap _ Done = Done
 
 printDzen :: Free Dzen () -> IO T.Text
@@ -67,6 +77,9 @@ printDzen (Free (Icon color path next)) = do
 printDzen (Free (Script ioScript next)) = do
     (output, rest) <- Async.concurrently ioScript (printDzen next)
     return $ output <> rest
+printDzen (Free (ScriptState ioScript state next)) = do
+    (output, rest) <- Async.concurrently (ioScript state) (printDzen next)
+    return $ output <> rest
 printDzen (Free Done) =  return ""
 printDzen (Pure _) =  return ""
 
@@ -77,15 +90,19 @@ printLoop = do
 
 printLoop' :: IO ()
 printLoop' = forever $ do
-    printDzen freeStruc >>= TIO.putStrLn
+    state <- getCpuStat
     Conc.threadDelay (secondsDelay 1)
+    printDzen (freeStruc (State state)) >>= TIO.putStrLn
 
-freeStruc :: Free Dzen ()
-freeStruc = do
+freeStruc :: State -> Free Dzen ()
+freeStruc state = do
     icon headphoneColor "/home/arguggi/dotfiles/icons/xbm8x8/phones.xbm"
     script getSong
     separator
-    script getCpuAverage
+    icon ramColor "/home/arguggi/dotfiles/icons/stlarch/mem1.xbm"
+    script getRam
+    separator
+    scriptState getCpuAverage state
     separator
     script getUptime
     separator
@@ -96,6 +113,26 @@ wrapColor color text = "^fg(" <> color <> ") " <> text <> "^fg()"
 
 wrapIcon :: T.Text -> T.Text
 wrapIcon path = "^i(" <> path <> ") "
+
+getRam :: IO T.Text
+getRam = do
+    memInfo <- (take 3 . T.lines) <$> TIO.readFile "/proc/meminfo"
+    let total = headDef "" $ filter ("MemTotal:" `T.isPrefixOf`) memInfo
+        available = headDef "" $ filter ("MemAvailable:" `T.isPrefixOf`) memInfo
+        totalGb = kbToMb (getKb . T.words $ total)
+        availableGb = kbToMb (getKb . T.words $ available)
+        freeGb = totalGb - availableGb
+    return $ (T.pack . show $ freeGb) <> "M / " <> (T.pack . show $ totalGb) <> "M"
+
+kbToGb :: Integer -> Integer
+kbToGb kb = quot kb (1024 * 1024)
+
+kbToMb :: Integer -> Integer
+kbToMb kb = quot kb 1024
+
+getKb :: [T.Text] -> Integer
+getKb (_:total:_:_) = read . T.unpack $ total
+getKb _ = 0
 
 getTime :: IO T.Text
 getTime = do
@@ -140,14 +177,19 @@ quot' :: Integer -> Integer -> Integer
 quot' _ 0 = 0
 quot' a b = quot a b
 
-getCpuAverage :: IO T.Text
-getCpuAverage = do
-    stat1 <- filterStats <$> TIO.readFile "/proc/stat"
-    Conc.threadDelay 10000
-    stat2 <- filterStats <$> TIO.readFile "/proc/stat"
-    case parseBoth stat1 stat2 of
+getCpuStat :: IO [CpuStat]
+getCpuStat = do
+    stat <- filterStats <$> TIO.readFile "/proc/stat"
+    case Atto.parseOnly statParser stat of
+        (Left _) -> return [defaultStat]
+        (Right x) -> return x
+
+getCpuAverage :: State -> IO T.Text
+getCpuAverage (State oldState) = do
+    stat <- filterStats <$> TIO.readFile "/proc/stat"
+    case Atto.parseOnly statParser stat of
         (Left _) -> return ""
-        (Right (first, second)) -> return . padShow $ zipWith cpuAverage first second
+        (Right newState) -> return . padShow $ zipWith cpuAverage oldState newState
 
 padShow :: [Integer] -> T.Text
 padShow x = T.pack $ foldl (<>) "" padded
@@ -156,17 +198,10 @@ padShow x = T.pack $ foldl (<>) "" padded
 filterStats :: T.Text -> T.Text
 filterStats = T.unlines . filter ("cpu" `T.isPrefixOf`) . T.lines
 
-parseBoth :: T.Text -> T.Text -> Either String ([CpuStat], [CpuStat])
-parseBoth stat1 stat2 = do
-    cpu1 <- Atto.parseOnly statParser stat1
-    cpu2 <- Atto.parseOnly statParser stat2
-    return (cpu1, cpu2)
-
 statParser :: Atto.Parser [CpuStat]
 statParser = Atto.many' statParser'
 
 statParser' :: Atto.Parser CpuStat
---statParser' = CpuStat <$> (Atto.string "cpu" *> Atto.digit *> Atto.space *> Atto.decimal) <*> (Atto.decimal *> Atto.decimal) <*> (Atto.decimal <* Atto.takeText)
 statParser' = do
     user <- Atto.string "cpu" *> Atto.choice [Atto.digit, Atto.space] *> Atto.space *> Atto.decimal
     system <- Atto.space *> (Atto.decimal :: Atto.Parser Integer) *> Atto.space *> Atto.decimal
