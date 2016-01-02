@@ -85,15 +85,14 @@ freeStruc = do
     icon headphoneColor "/home/arguggi/dotfiles/icons/xbm8x8/phones.xbm"
     script getSong
     separator
+    script getCpuAverage
+    separator
     script getUptime
     separator
     script getTime
-    separator
-    script getCpuAverage
-    separator
 
 wrapColor :: Color -> T.Text -> T.Text
-wrapColor color text = "^fg(" <> color <> ") " <> text <> " ^fg()"
+wrapColor color text = "^fg(" <> color <> ") " <> text <> "^fg()"
 
 wrapIcon :: T.Text -> T.Text
 wrapIcon path = "^i(" <> path <> ") "
@@ -108,8 +107,24 @@ getUptime = do
     uptime <- TIO.readFile "/proc/uptime"
     case Atto.parseOnly uptimeParser uptime of
         (Left _) -> return ""
-        (Right double) -> return ((T.pack . show) (round double :: Integer))
+        (Right double) -> return $ toUptimeText (round double :: Integer)
 
+
+toUptimeText :: Integer -> T.Text
+toUptimeText totalSecs = padTime days "d" <> padTime hours "h" <> padTime minutes "m" <> padTime seconds "s"
+    where (days, remDays) = quotRem totalSecs secDay
+          (hours, remHours) = quotRem remDays secHour
+          (minutes, seconds) = quotRem remHours secMinute
+
+padTime :: Integer -> T.Text -> T.Text
+padTime x unit = T.pack ( printf " %2d" x) <> unit
+
+secDay :: Integer
+secDay = 24 * secHour
+secHour :: Integer
+secHour = 60 * secMinute
+secMinute :: Integer
+secMinute = 60
 
 getSong :: IO T.Text
 getSong = return "Test Song"
