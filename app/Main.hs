@@ -1,6 +1,6 @@
 module Main where
 
-import Lib
+import qualified Honky as H
 
 main :: IO ()
-main = printLoop
+main = H.main
