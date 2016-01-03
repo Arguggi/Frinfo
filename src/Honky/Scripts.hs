@@ -59,7 +59,7 @@ getRam = do
 getCpuRpm :: IO T.Text
 getCpuRpm = do
     rpm <- readFile "/sys/class/hwmon/hwmon1/fan2_input"
-    return . T.pack $ printf " %4d RPM" (read $ initSafe rpm :: Int)
+    return . T.pack $ printf " %4d RPM" (readDef 0 $ initSafe rpm :: Int)
 
 kbToMb :: Integer -> Integer
 kbToMb kb = quot kb 1024
