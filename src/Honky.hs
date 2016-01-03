@@ -37,6 +37,7 @@ freeStruc state uname = do
     separator
     icon cpuColor "/home/arguggi/dotfiles/icons/stlarch/cpu1.xbm"
     scriptState getCpuAverage state
+    script getCpuRpm
     separator
     icon unameColor "/home/arguggi/dotfiles/icons/xbm8x8/arch_10x10.xbm"
     static uname

@@ -56,6 +56,11 @@ getRam = do
         freeGb = totalGb - availableGb
     return $ (T.pack . show $ freeGb) <> "M / " <> (T.pack . show $ totalGb) <> "M"
 
+getCpuRpm :: IO T.Text
+getCpuRpm = do
+    rpm <- readFile "/sys/class/hwmon/hwmon1/fan2_input"
+    return . T.pack $ printf " %4d RPM" (read $ initSafe rpm :: Int)
+
 kbToMb :: Integer -> Integer
 kbToMb kb = quot kb 1024
 
