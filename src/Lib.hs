@@ -10,13 +10,21 @@ import qualified Data.Attoparsec.Text     as Atto
 import           Data.Monoid
 import qualified Data.Text                as T
 import qualified Data.Text.IO             as TIO
-import           Data.Time.Clock          (getCurrentTime)
 import           Data.Time.Format         (defaultTimeLocale, formatTime)
+import           Data.Time.LocalTime      (getZonedTime)
 import           Safe
 import           System.IO
+import qualified System.Process           as Process
 import           Text.Printf
 
-data Dzen next = Separator next | Icon Color Path next | Script (IO T.Text) next | ScriptState (State -> IO T.Text) State next | Done
+data Dzen next =
+      Separator next
+    | Icon Color Path next
+    | Static T.Text next
+    | Script (IO T.Text) next
+    | ScriptState (State -> IO T.Text) State next
+    | Done
+
 data Player = Spotify | Mpd | None
 data State = State [CpuStat]
 
@@ -39,6 +47,18 @@ headphoneColor = "#ea8b2a"
 ramColor :: Color
 ramColor = "#e86f0c"
 
+cpuColor :: Color
+cpuColor = "#487ff7"
+
+clockColor :: Color
+clockColor = "#ffbd55"
+
+unameColor :: Color
+unameColor = "#6eadd8"
+
+uptimeColor :: Color
+uptimeColor = "#05aa8b"
+
 secondsDelay :: Int -> Int
 secondsDelay x = x * 1000000
 
@@ -47,6 +67,9 @@ separator = liftF (Separator ())
 
 icon :: Color -> Path -> Free Dzen ()
 icon color path  = liftF (Icon color path ())
+
+static :: T.Text -> Free Dzen ()
+static text = liftF (Static text ())
 
 done :: Free Dzen ()
 done = Free Done
@@ -60,6 +83,7 @@ scriptState x state = liftF (ScriptState x state ())
 instance Functor Dzen where
     fmap f (Separator x) = Separator (f x)
     fmap f (Icon color path x) = Icon color path (f x)
+    fmap f (Static text x) = Static text (f x)
     fmap f (Script text x) = Script text (f x)
     fmap f (ScriptState text state x) = ScriptState text state (f x)
     fmap _ Done = Done
@@ -74,6 +98,9 @@ printDzen (Free (Icon color path next)) = do
         wrappedIcon = wrapColor color iconText
     rest <- printDzen next
     return $ wrappedIcon <> rest
+printDzen (Free (Static text next)) = do
+    rest <- printDzen next
+    return $ text <> rest
 printDzen (Free (Script ioScript next)) = do
     (output, rest) <- Async.concurrently ioScript (printDzen next)
     return $ output <> rest
@@ -86,30 +113,38 @@ printDzen (Pure _) =  return ""
 printLoop :: IO ()
 printLoop = do
     hSetBuffering stdout NoBuffering
-    printLoop'
+    -- remove newline
+    uname <- (T.pack . initSafe) <$> Process.readProcess "uname" ["-r"] []
+    printLoop' uname
 
-printLoop' :: IO ()
-printLoop' = forever $ do
+printLoop' :: T.Text -> IO ()
+printLoop' uname = forever $ do
     state <- getCpuStat
     Conc.threadDelay (secondsDelay 1)
-    printDzen (freeStruc (State state)) >>= TIO.putStrLn
+    printDzen (freeStruc (State state) uname) >>= TIO.putStrLn
 
-freeStruc :: State -> Free Dzen ()
-freeStruc state = do
+freeStruc :: State -> T.Text -> Free Dzen ()
+freeStruc state uname = do
     icon headphoneColor "/home/arguggi/dotfiles/icons/xbm8x8/phones.xbm"
     script getSong
     separator
     icon ramColor "/home/arguggi/dotfiles/icons/stlarch/mem1.xbm"
     script getRam
     separator
+    icon cpuColor "/home/arguggi/dotfiles/icons/stlarch/cpu1.xbm"
     scriptState getCpuAverage state
     separator
+    icon unameColor "/home/arguggi/dotfiles/icons/xbm8x8/arch_10x10.xbm"
+    static uname
+    separator
+    icon uptimeColor "/home/arguggi/dotfiles/icons/stlarch/logout1.xbm"
     script getUptime
     separator
+    icon clockColor "/home/arguggi/dotfiles/icons/stlarch/clock1.xbm"
     script getTime
 
 wrapColor :: Color -> T.Text -> T.Text
-wrapColor color text = "^fg(" <> color <> ") " <> text <> "^fg()"
+wrapColor color text = "^fg(" <> color <> ")" <> text <> "^fg()"
 
 wrapIcon :: T.Text -> T.Text
 wrapIcon path = "^i(" <> path <> ") "
@@ -136,7 +171,7 @@ getKb _ = 0
 
 getTime :: IO T.Text
 getTime = do
-    time <- getCurrentTime
+    time <- getZonedTime
     return . T.pack $ formatTime defaultTimeLocale "%a %e %b %T" time
 
 getUptime :: IO T.Text

@@ -20,6 +20,7 @@ library
                      , async
                      , attoparsec
                      , free
+                     , process
                      , safe
                      , text
                      , time
