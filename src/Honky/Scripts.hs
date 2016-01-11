@@ -54,7 +54,10 @@ getRam = do
         totalGb = kbToMb (totalMemKb . T.words $ total)
         availableGb = kbToMb (totalMemKb . T.words $ available)
         freeGb = totalGb - availableGb
-    return $ (T.pack . show $ freeGb) <> "M / " <> (T.pack . show $ totalGb) <> "M"
+    return $ padRam freeGb <> "M / " <> padRam totalGb <> "M"
+
+padRam :: Integer ->  T.Text
+padRam x = T.pack $ printf " %4d" x
 
 getCpuRpm :: IO T.Text
 getCpuRpm = do
