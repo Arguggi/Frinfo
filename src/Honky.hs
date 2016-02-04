@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Honky (main) where
+module Honky (main, freeStruc, exportPrintDzen, exportState) where
 
 import qualified Control.Concurrent as Conc
 import           Control.Monad      (forever)
@@ -50,3 +50,9 @@ freeStruc state uname = do
 
 secondsDelay :: Int -> Int
 secondsDelay x = x * 1000000
+
+exportPrintDzen :: Free Dzen () -> IO T.Text
+exportPrintDzen = printDzen
+
+exportState :: State
+exportState = State [defaultCpuStat] [defaultNetStat]
