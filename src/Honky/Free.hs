@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveFunctor #-}
 
 module Honky.Free where
 
@@ -43,14 +44,6 @@ script x = liftF (Script x ())
 scriptState :: (State -> IO T.Text) -> State -> Free Dzen ()
 scriptState x state = liftF (ScriptState x state ())
 
-instance Functor Dzen where
-    fmap f (Separator x) = Separator (f x)
-    fmap f (Icon color path x) = Icon color path (f x)
-    fmap f (Static text x) = Static text (f x)
-    fmap f (Script text x) = Script text (f x)
-    fmap f (ScriptState text state x) = ScriptState text state (f x)
-
--- printer for free
 printDzen :: Free Dzen () -> IO T.Text
 printDzen (Free (Separator next)) = do
     let sep = " | "
