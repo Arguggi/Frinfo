@@ -23,3 +23,6 @@ unameColor = "#6eadd8"
 
 uptimeColor :: Color
 uptimeColor = "#05aa8b"
+
+upColor :: Color
+upColor = "#cc0000"

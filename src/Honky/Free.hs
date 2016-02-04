@@ -15,22 +15,44 @@ data Dzen next =
     | Static T.Text next
     | Script (IO T.Text) next
     | ScriptState (State -> IO T.Text) State next
+    deriving (Functor)
 
-data CpuStat = CpuStat User System Idle deriving (Show)
+data CpuStat = CpuStat
+    { user :: Integer
+    , system :: Integer
+    , idle :: Integer
+    } deriving (Show)
+data NetStat = NetStat
+    { interface :: T.Text
+    , downTotal :: Integer
+    , upTotal :: Integer
+    } deriving (Show)
 
-data State = State [CpuStat]
+data State = State
+    { cpuState :: [CpuStat]
+    , netState :: [NetStat]
+    } deriving (Show)
 
-type User = Integer
-type System = Integer
-type Idle = Integer
+instance Ord NetStat where
+    compare (NetStat _ d1 _) (NetStat _ d2 _) = compare d2 d1
+
+instance Eq NetStat where
+    (NetStat _ d1 _) ==  (NetStat _ d2 _) = d1 == d2
+
 type Path = T.Text
 
-defaultStat :: CpuStat
-defaultStat = CpuStat 0 0 0
+defaultCpuStat :: CpuStat
+defaultCpuStat = CpuStat 0 0 0
+
+defaultNetStat :: NetStat
+defaultNetStat = NetStat "Empty" 0 0
 
 -- Convenient Dzen -> Free
 separator :: Free Dzen ()
 separator = liftF (Separator ())
+
+sep :: T.Text
+sep = " | "
 
 icon :: Color -> Path -> Free Dzen ()
 icon color path  = liftF (Icon color path ())
@@ -46,7 +68,6 @@ scriptState x state = liftF (ScriptState x state ())
 
 printDzen :: Free Dzen () -> IO T.Text
 printDzen (Free (Separator next)) = do
-    let sep = " | "
     rest <- printDzen next
     return $ sep <> rest
 printDzen (Free (Icon color path next)) = do

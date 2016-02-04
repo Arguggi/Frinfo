@@ -3,6 +3,7 @@
 module Honky (main, freeStruc, exportPrintDzen, exportState) where
 
 import qualified Control.Concurrent as Conc
+import qualified Control.Concurrent.Async as Async
 import           Control.Monad      (forever)
 import           Control.Monad.Free
 import qualified Data.Text          as T
@@ -23,9 +24,9 @@ main = do
 
 printLoop' :: T.Text -> IO ()
 printLoop' uname = forever $ do
-    state <- getCpuStat
+    (cpu, net) <- Async.concurrently getCpuStat getNetStat
     Conc.threadDelay (secondsDelay 1)
-    printDzen (freeStruc (State state) uname) >>= TIO.putStrLn
+    printDzen (freeStruc (State cpu net) uname) >>= TIO.putStrLn
 
 freeStruc :: State -> T.Text -> Free Dzen ()
 freeStruc state uname = do
@@ -34,6 +35,9 @@ freeStruc state uname = do
     separator
     icon ramColor "/home/arguggi/dotfiles/icons/stlarch/mem1.xbm"
     script getRam
+    separator
+    scriptState getNetAverage state
+    icon upColor "/home/arguggi/dotfiles/icons/xbm8x8/net_up_03.xbm"
     separator
     icon cpuColor "/home/arguggi/dotfiles/icons/stlarch/cpu1.xbm"
     scriptState getCpuAverage state

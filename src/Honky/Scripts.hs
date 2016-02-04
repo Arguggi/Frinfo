@@ -3,11 +3,13 @@
 module Honky.Scripts where
 
 import qualified Data.Attoparsec.Text as Atto
+import           Data.List            (sort)
 import           Data.Monoid
 import qualified Data.Text            as T
 import qualified Data.Text.IO         as TIO
 import           Data.Time.Format     (defaultTimeLocale, formatTime)
 import           Data.Time.LocalTime  (getZonedTime)
+import           Honky.Colors
 import           Honky.Free
 import           Honky.Parsers
 import           Safe
@@ -19,17 +21,38 @@ getSong = return "Test Song"
 
 getCpuStat :: IO [CpuStat]
 getCpuStat = do
-    stat <- filterStats <$> TIO.readFile "/proc/stat"
-    case Atto.parseOnly statParser stat of
-        (Left _) -> return [defaultStat]
+    stat <- filterCpuStats <$> TIO.readFile "/proc/stat"
+    case Atto.parseOnly cpuStatParser stat of
+        (Left _) -> return [defaultCpuStat]
         (Right x) -> return x
 
+getNetAverage :: State -> IO T.Text
+getNetAverage (State _ oldState) = do
+    newState <- getNetStat
+    return . netSpeed . headDef defaultNetStat . sort $ zipWith netAverage oldState newState
+
+netSpeed :: NetStat -> T.Text
+netSpeed (NetStat interface up down) = T.pack $ printf "%10s " ( T.unpack interface) <> (printf "%5d" up <> "KB/s " <> downIcon) <> (printf "%5d" down <> "KB/s ")
+    where downIcon = T.unpack $ wrapColor upColor (wrapIcon "/home/arguggi/dotfiles/icons/xbm8x8/net_down_03.xbm")
+
+getNetStat :: IO [NetStat]
+getNetStat = do
+    stat <- filterNetStats <$> TIO.readFile "/proc/net/dev"
+    return $ fmap parseNet stat
+
 getCpuAverage :: State -> IO T.Text
-getCpuAverage (State oldState) = do
-    stat <- filterStats <$> TIO.readFile "/proc/stat"
-    case Atto.parseOnly statParser stat of
+getCpuAverage (State oldState _) = do
+    stat <- filterCpuStats <$> TIO.readFile "/proc/stat"
+    case Atto.parseOnly cpuStatParser stat of
         (Left _) -> return ""
         (Right newState) -> return . padShow $ zipWith cpuAverage oldState newState
+
+parseNet :: T.Text -> NetStat
+parseNet x = getTotal $ T.words x
+
+getTotal :: [T.Text] -> NetStat
+getTotal (interface:upTotal:_:_:_:_:_:_:_:downTotal:_) = NetStat interface (read . T.unpack $ upTotal :: Integer) (read . T.unpack $ downTotal :: Integer)
+getTotal _ = defaultNetStat
 
 getTime :: IO T.Text
 getTime = do
@@ -43,8 +66,16 @@ getUptime = do
         (Left _) -> return ""
         (Right double) -> return $ toUptimeText (round double :: Integer)
 
-filterStats :: T.Text -> T.Text
-filterStats = T.unlines . filter ("cpu" `T.isPrefixOf`) . T.lines
+filterCpuStats :: T.Text -> T.Text
+filterCpuStats = T.unlines . filter ("cpu" `T.isPrefixOf`) . T.lines
+
+filterNetStats :: T.Text -> [T.Text]
+filterNetStats text = filter isntLo noHeader
+    where noHeader = drop 2 $ T.lines text
+
+isntLo :: T.Text -> Bool
+isntLo x = first /=  "lo:"
+    where (first:_) = T.words x
 
 getRam :: IO T.Text
 getRam = do
@@ -62,7 +93,7 @@ padRam x = T.pack $ printf " %4d" x
 getCpuRpm :: IO T.Text
 getCpuRpm = do
     rpm <- readFile "/sys/class/hwmon/hwmon1/fan2_input"
-    return . T.pack $ printf " %4d RPM" (readDef 0 $ initSafe rpm :: Int)
+    return . T.pack $ printf " %4d RPM" (readDef 0 $ initSafe rpm :: Integer)
 
 kbToMb :: Integer -> Integer
 kbToMb kb = quot kb 1024
@@ -90,6 +121,10 @@ secMinute = 60
 cpuAverage :: CpuStat -> CpuStat -> Integer
 cpuAverage (CpuStat user1 system1 idle1) (CpuStat user2 system2 idle2) =
     quot' ((user2 + system2 - user1 - system1) * 100) (user2 + system2 + idle2 - user1 - system1 - idle1)
+
+netAverage :: NetStat -> NetStat -> NetStat
+netAverage (NetStat _ up1 down1) (NetStat interface2 up2 down2) =
+    NetStat interface2 (quot (up2 - up1) 1024) (quot (down2 - down1) 1024)
 
 quot' :: Integer -> Integer -> Integer
 quot' _ 0 = 0
