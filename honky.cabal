@@ -49,7 +49,7 @@ test-suite honky-test
 
 executable honky-benchmark
   hs-source-dirs:      benchmark
-  main-is:             Main.hs
+  main-is:             Benchmarks.hs
   build-depends:       base
                      , criterion
                      , honky
