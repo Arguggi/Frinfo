@@ -8,6 +8,12 @@ $ git clone https://github.com/Arguggi/Frinfo.git
 $ cd Frinfo
 $ stack build
 ```
+## How-to
+
+The output of `frinfo-exe` is meant to be piped to dzen:
+```
+$ frinfo-exe | dzen2
+```
 
 ## Target OS
 
