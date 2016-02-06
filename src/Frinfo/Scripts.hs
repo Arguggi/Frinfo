@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Honky.Scripts where
+module Frinfo.Scripts where
 
 import qualified Data.Attoparsec.Text as Atto
 import           Data.List            (sort)
@@ -9,9 +9,9 @@ import qualified Data.Text            as T
 import qualified Data.Text.IO         as TIO
 import           Data.Time.Format     (defaultTimeLocale, formatTime)
 import           Data.Time.LocalTime  (getZonedTime)
-import           Honky.Colors
-import           Honky.Free
-import           Honky.Parsers
+import           Frinfo.Colors
+import           Frinfo.Free
+import           Frinfo.Parsers
 import           Safe
 import           Text.Printf
 

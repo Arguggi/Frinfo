@@ -1,25 +1,25 @@
-name:                honky
+name:                frinfo
 version:             0.1.0.0
 synopsis:            Print system information to stdout
 description:         Please see README.md
-homepage:            http://github.com/Arguggi/honky#readme
-license:             BSD3
+homepage:            http://github.com/Arguggi/frinfo
+license:             MIT
 license-file:        LICENSE
 author:              Arguggi
 maintainer:          haskell@arguggi.co.uk
 copyright:           2016 Arguggi
-category:            Web
+category:            Utils
 build-type:          Simple
 -- extra-source-files:
 cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Honky
-  other-modules:       Honky.Colors
-                     , Honky.Free
-                     , Honky.Parsers
-                     , Honky.Scripts
+  exposed-modules:     Frinfo
+  other-modules:       Frinfo.Colors
+                     , Frinfo.Free
+                     , Frinfo.Parsers
+                     , Frinfo.Scripts
   build-depends:       base >= 4.7 && < 5
                      , async
                      , attoparsec
@@ -31,29 +31,29 @@ library
                      , time
   default-language:    Haskell2010
 
-executable honky-exe
+executable frinfo-exe
   hs-source-dirs:      app
   main-is:             Main.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N4 -O2
   build-depends:       base
-                     , honky
+                     , frinfo
   default-language:    Haskell2010
 
-test-suite honky-test
+test-suite frinfo-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Spec.hs
   build-depends:       base
-                     , honky
+                     , frinfo
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 
-executable honky-benchmark
+executable frinfo-benchmark
   hs-source-dirs:      benchmark
-  main-is:             Benchmarks.hs
+  main-is:             Main.hs
   build-depends:       base
                      , criterion
-                     , honky
+                     , frinfo
                      , mtl
                      , text
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -O2
@@ -62,4 +62,4 @@ executable honky-benchmark
 
 source-repository head
   type:     git
-  location: https://github.com/Arguggi/honky
+  location: https://github.com/Arguggi/frinfo

@@ -1,9 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Honky.Parsers where
+module Frinfo.Parsers where
 
 import qualified Data.Attoparsec.Text as Atto
-import           Honky.Free
+import           Frinfo.Free
 
 -- | Parse all cpu stat lines from /proc/stat
 cpuStatParser :: Atto.Parser [CpuStat]

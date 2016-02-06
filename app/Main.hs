@@ -1,6 +1,6 @@
 module Main where
 
-import qualified Honky as H
+import qualified Frinfo as F
 
 main :: IO ()
-main = H.main
+main = F.main

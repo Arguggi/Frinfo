@@ -1,14 +1,14 @@
 {-# LANGUAGE DeriveFunctor     #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Honky.Free where
+module Frinfo.Free where
 
 
 import           Control.Monad.Free
 import qualified Control.Monad.State.Strict as S
 import           Data.Monoid
 import qualified Data.Text                  as T
-import           Honky.Colors
+import           Frinfo.Colors
 
 
 data Dzen next =

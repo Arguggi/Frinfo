@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Honky.Colors where
+module Frinfo.Colors where
 
 import qualified Data.Text as T
 

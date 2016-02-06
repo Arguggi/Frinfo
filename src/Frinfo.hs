@@ -1,15 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Honky (main, freeStruc, defaultMyState, exportPrintDzen) where
+module Frinfo (main, freeStruc, defaultMyState, exportPrintDzen) where
 
 import qualified Control.Concurrent         as Conc
 import           Control.Monad.Free
 import qualified Control.Monad.State.Strict as S
 import qualified Data.Text                  as T
 import qualified Data.Text.IO               as TIO
-import           Honky.Colors
-import           Honky.Free
-import           Honky.Scripts
+import           Frinfo.Colors
+import           Frinfo.Free
+import           Frinfo.Scripts
 import           Safe
 import           System.IO
 import qualified System.Process             as Process

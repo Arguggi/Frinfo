@@ -1,13 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Benchmarks (main) where
+module Main (main) where
 
 import Criterion (bench, bgroup)
 import Criterion.Main (defaultMain, nfIO)
-import qualified Honky as H
+import qualified Frinfo as F
 import qualified Control.Monad.State.Strict as S
 
 main :: IO ()
 main = defaultMain [
-    bgroup "honky" [bench "print Dzen" $ nfIO (S.evalStateT (H.exportPrintDzen H.freeStruc) H.defaultMyState)]
+    bgroup "frinfo" [bench "print Dzen" $ nfIO (S.evalStateT (F.exportPrintDzen F.freeStruc) F.defaultMyState)]
     ]
