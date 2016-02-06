@@ -16,7 +16,7 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Frinfo
-  other-modules:       Frinfo.Colors
+                     , Frinfo.Colors
                      , Frinfo.Free
                      , Frinfo.Parsers
                      , Frinfo.Scripts

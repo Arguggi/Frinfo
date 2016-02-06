@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Frinfo.Colors where
+module Frinfo.Colors (module Frinfo.Colors) where
 
 import qualified Data.Text as T
 

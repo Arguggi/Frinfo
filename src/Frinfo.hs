@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Frinfo (main, freeStruc, defaultMyState, exportPrintDzen) where
+module Frinfo (module Frinfo) where
 
 import qualified Control.Concurrent         as Conc
 import           Control.Monad.Free
@@ -22,6 +22,7 @@ main = do
     let startingState =  MyState (SystemState [defaultCpuStat] [defaultNetStat]) (StaticState unameIO)
     printLoop startingState
 
+-- |The loops that keeps printing the system info
 printLoop :: MyState -> IO ()
 printLoop state = do
     (output, newState) <- S.runStateT (printDzen freeStruc) state
@@ -29,6 +30,7 @@ printLoop state = do
     Conc.threadDelay (secondsDelay 1)
     printLoop newState
 
+-- |See 'Dzen' for the available constructors
 freeStruc :: Free Dzen ()
 freeStruc = do
     icon headphoneColor "/home/arguggi/dotfiles/icons/xbm8x8/phones.xbm"
@@ -53,6 +55,7 @@ freeStruc = do
     icon clockColor "/home/arguggi/dotfiles/icons/stlarch/clock1.xbm"
     script getTime
 
+-- | Convert number to seconds
 secondsDelay :: Int -> Int
 secondsDelay x = x * 1000000
 
