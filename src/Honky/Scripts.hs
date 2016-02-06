@@ -15,7 +15,6 @@ import           Honky.Parsers
 import           Safe
 import           Text.Printf
 
-
 getSong :: IO T.Text
 getSong = return "Test Song"
 
@@ -26,13 +25,14 @@ getCpuStat = do
         (Left _) -> return [defaultCpuStat]
         (Right x) -> return x
 
-getNetAverage :: State -> IO T.Text
-getNetAverage (State _ oldState) = do
+getNetAverage :: SystemState -> IO (T.Text, SystemState)
+getNetAverage oldState = do
+    let oldNetState = netState oldState
     newState <- getNetStat
-    return . netSpeed . headDef defaultNetStat . sort $ zipWith netAverage oldState newState
+    return (netSpeed . headDef defaultNetStat . sort $ zipWith netAverage oldNetState newState, oldState { netState = newState })
 
 netSpeed :: NetStat -> T.Text
-netSpeed (NetStat interface up down) = T.pack $ printf "%10s " ( T.unpack interface) <> (printf "%5d" up <> "KB/s " <> downIcon) <> (printf "%5d" down <> "KB/s ")
+netSpeed (NetStat inter up down) = T.pack $ printf "%10s " (T.unpack inter) <> (printf "%5d" up <> "KB/s " <> downIcon) <> (printf "%5d" down <> "KB/s ")
     where downIcon = T.unpack $ wrapColor upColor (wrapIcon "/home/arguggi/dotfiles/icons/xbm8x8/net_down_03.xbm")
 
 getNetStat :: IO [NetStat]
@@ -40,18 +40,19 @@ getNetStat = do
     stat <- filterNetStats <$> TIO.readFile "/proc/net/dev"
     return $ fmap parseNet stat
 
-getCpuAverage :: State -> IO T.Text
-getCpuAverage (State oldState _) = do
+getCpuAverage :: SystemState -> IO (T.Text, SystemState)
+getCpuAverage oldState = do
+    let oldCpuState = cpuState oldState
     stat <- filterCpuStats <$> TIO.readFile "/proc/stat"
     case Atto.parseOnly cpuStatParser stat of
-        (Left _) -> return ""
-        (Right newState) -> return . padShow $ zipWith cpuAverage oldState newState
+        (Left _) -> return ("", oldState)
+        (Right newState) -> return (padShow $ zipWith cpuAverage oldCpuState newState, oldState {cpuState = newState})
 
 parseNet :: T.Text -> NetStat
 parseNet x = getTotal $ T.words x
 
 getTotal :: [T.Text] -> NetStat
-getTotal (interface:upTotal:_:_:_:_:_:_:_:downTotal:_) = NetStat interface (read . T.unpack $ upTotal :: Integer) (read . T.unpack $ downTotal :: Integer)
+getTotal (interfaceName:upTotalT:_:_:_:_:_:_:_:downTotalT:_) = NetStat interfaceName (read . T.unpack $ upTotalT :: Integer) (read . T.unpack $ downTotalT :: Integer)
 getTotal _ = defaultNetStat
 
 getTime :: IO T.Text
