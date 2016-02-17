@@ -30,8 +30,8 @@ printLoop state = do
     Conc.threadDelay (secondsDelay 1)
     printLoop newState
 
--- |See 'Dzen' for the available constructors
-freeStruc :: Free Dzen ()
+-- |See 'Info' for the available constructors
+freeStruc :: Free Info ()
 freeStruc = do
     icon headphoneColor "/home/arguggi/dotfiles/icons/xbm8x8/phones.xbm"
     script getSong
@@ -59,5 +59,5 @@ freeStruc = do
 secondsDelay :: Int -> Int
 secondsDelay x = x * 1000000
 
-exportPrintDzen :: Free Dzen () -> StateM
+exportPrintDzen :: Free Info () -> StateM
 exportPrintDzen = printDzen

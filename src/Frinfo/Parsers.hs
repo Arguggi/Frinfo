@@ -19,11 +19,11 @@ cpuStatParser = Atto.many' cpuStatParser'
 -- | Parse a single cpu stat line from @\/proc\/stat@
 cpuStatParser' :: Atto.Parser CpuStat
 cpuStatParser' = do
-    user <- Atto.string "cpu" *> Atto.choice [Atto.digit, Atto.space] *> Atto.space *> Atto.decimal
-    system <- Atto.space *> (Atto.decimal :: Atto.Parser Integer) *> Atto.space *> Atto.decimal
-    idle <- Atto.space *> Atto.decimal <* Atto.skipWhile (not . Atto.isEndOfLine)
+    parsedUser <- Atto.string "cpu" *> Atto.choice [Atto.digit, Atto.space] *> Atto.space *> Atto.decimal
+    parsedSystem <- Atto.space *> (Atto.decimal :: Atto.Parser Integer) *> Atto.space *> Atto.decimal
+    parsedIdle <- Atto.space *> Atto.decimal <* Atto.skipWhile (not . Atto.isEndOfLine)
     Atto.endOfLine
-    return $ CpuStat user system idle
+    return $ CpuStat parsedUser parsedSystem parsedIdle
 
 {-| Example of the line we need to parse
 

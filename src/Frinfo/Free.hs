@@ -8,8 +8,8 @@ import qualified Control.Monad.State.Strict as S
 import           Data.Monoid
 import qualified Data.Text                  as T
 import           Frinfo.Colors
-
-data Dzen next =
+-- Datatype that will be used with Free and an interpreter
+data Info next =
       Separator next
       -- ^ Add a simple separator, defined as 'sep'
     | Icon Color Path next
@@ -86,37 +86,37 @@ liftSystemScript systemScript = do
     S.put (MyState newS (staticState state))
     return output
 
--- |Separator that is used with the 'Separator' constructor is used
+-- |Separator that is used when the 'Separator' constructor is used
 sep :: T.Text
 sep = " | "
 
--- Lift Dzen into the Free Monad
+-- Lift Info into the Free Monad
 -- |Lift 'Separator'
-separator :: Free Dzen ()
+separator :: Free Info ()
 separator = liftF (Separator ())
 
 -- |Lift 'Icon'
-icon :: Color -> Path -> Free Dzen ()
+icon :: Color -> Path -> Free Info ()
 icon color path  = liftF (Icon color path ())
 
 -- |Lift 'Static'
-static :: (StaticState -> T.Text) -> Free Dzen ()
+static :: (StaticState -> T.Text) -> Free Info ()
 static text = liftF (Static text ())
 
 -- |Lift 'Script'
-script :: IO T.Text -> Free Dzen ()
+script :: IO T.Text -> Free Info ()
 script x = liftF (Script x ())
 
 -- |Lift 'ScriptState'
-scriptState :: (SystemState -> IO (T.Text, SystemState)) -> Free Dzen ()
+scriptState :: (SystemState -> IO (T.Text, SystemState)) -> Free Info ()
 scriptState x = liftF (ScriptState x ())
 
 
--- |Interpret the Free Monad.
+-- |Interpret the Info + Free Monad.
 -- This outputs 'IO' ('T.Text', 'MyState').
 -- The 'T.Text' should be fed to dzen2
 -- The 'MyState' should be used in the next print statement
-printDzen :: Free Dzen () -> StateM
+printDzen :: Free Info () -> StateM
 printDzen (Free (Separator next)) = do
     rest <- printDzen next
     return $ sep <> rest
