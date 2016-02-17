@@ -14,7 +14,6 @@ import           Frinfo.Free
 import           Frinfo.Parsers
 import           Safe
 import           System.IO            as SIO
-import           System.IO.Strict     as SIOS
 import           Text.Printf
 
 -- |Get name of the song that is playing
@@ -128,8 +127,8 @@ padRam x = T.pack $ printf " %4d" x
 getCpuRpm :: IO T.Text
 getCpuRpm =
     withFile "/sys/class/hwmon/hwmon1/fan2_input" ReadMode $ \file -> do
-        rpm <- SIOS.hGetContents file
-        return . T.pack $ printf " %4d RPM" (readDef 0 $ initSafe rpm :: Integer)
+        rpm <- TIO.hGetContents file
+        return . T.pack $ printf " %4d RPM" (readDef 0 $ T.unpack rpm :: Integer)
 
 -- |Get Megabits from Kilobits
 kbToMb :: Integer -> Integer

@@ -27,7 +27,6 @@ library
                      , mtl
                      , process
                      , safe
-                     , strict
                      , text
                      , time
   default-language:    Haskell2010
