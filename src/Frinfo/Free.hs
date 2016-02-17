@@ -8,7 +8,6 @@ import qualified Control.Monad.State.Strict as S
 import           Data.Monoid
 import qualified Data.Text                  as T
 import           Frinfo.Colors
--- Datatype that will be used with Free and an interpreter
 data Info next =
       Separator next
       -- ^ Add a simple separator, defined as 'sep'
@@ -23,12 +22,17 @@ data Info next =
       -- ^ Add some IO text that also needs access to the previous SystemState
     deriving (Functor)
 
+-- |Cpu data taken from @\/proc\/stat@
 data CpuStat = CpuStat
     { user   :: Integer
+    -- ^User stats
     , system :: Integer
+    -- ^System stats
     , idle   :: Integer
+    -- ^Idle stats
     } deriving (Show)
 
+-- |Interface data taken from @\/proc\/net\/dev@
 data NetStat = NetStat
     { interface :: T.Text
     -- ^Inteface name (e.g. enp5s0)
@@ -38,13 +42,18 @@ data NetStat = NetStat
     -- ^The total bits uploaded
     } deriving (Show)
 
+-- |Dynamic state that will be used with the 'ScriptState' constructor
 data SystemState = SystemState
     { cpuState :: [CpuStat]
+    -- ^ List of all 'CpuStat', one for each core and 1 for the total average
     , netState :: [NetStat]
+    -- ^ List of all 'NetStat', one for each interface
     } deriving (Show)
 
+-- |Static state that must be set at startup in 'main'
 data StaticState = StaticState
     { uname :: T.Text
+    -- ^ Output of @uname -r@
     } deriving (Show)
 
 -- |State of the script
@@ -55,7 +64,9 @@ data MyState = MyState
     -- ^Static state that should be set once at the start of the program
     } deriving (Show)
 
+-- |Filesystem path
 type Path = T.Text
+
 type StateM = S.StateT MyState IO T.Text
 
 instance Ord NetStat where

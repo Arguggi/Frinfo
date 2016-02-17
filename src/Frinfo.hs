@@ -1,6 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Frinfo (module Frinfo) where
+module Frinfo
+        ( main
+        , freeStruc
+        ) where
 
 import qualified Control.Concurrent         as Conc
 import           Control.Monad.Free
@@ -14,6 +17,8 @@ import           Safe
 import           System.IO
 import qualified System.Process             as Process
 
+-- |The main function must build a new 'StaticState' that will remain unchanged
+-- and will be used for the duretion of the program
 main :: IO ()
 main = do
     hSetBuffering stdout NoBuffering
@@ -30,7 +35,8 @@ printLoop state = do
     Conc.threadDelay (secondsDelay 1)
     printLoop newState
 
--- |See 'Info' for the available constructors
+-- |Build the data structure that will then be 'interpreted'
+-- See 'Info' for the available constructors
 freeStruc :: Free Info ()
 freeStruc = do
     icon headphoneColor "/home/arguggi/dotfiles/icons/xbm8x8/phones.xbm"
@@ -58,6 +64,3 @@ freeStruc = do
 -- | Convert number to seconds
 secondsDelay :: Int -> Int
 secondsDelay x = x * 1000000
-
-exportPrintDzen :: Free Info () -> StateM
-exportPrintDzen = printDzen
