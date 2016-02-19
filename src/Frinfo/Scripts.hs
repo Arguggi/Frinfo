@@ -2,19 +2,20 @@
 
 module Frinfo.Scripts where
 
-import qualified Data.Attoparsec.Text as Atto
-import           Data.List            (sort)
+import qualified Data.Attoparsec.Text  as Atto
+import           Data.List             (sort)
 import           Data.Monoid
-import qualified Data.Text            as T
-import qualified Data.Text.IO         as TIO
-import           Data.Time.Format     (defaultTimeLocale, formatTime)
-import           Data.Time.LocalTime  (getZonedTime)
+import qualified Data.Text             as T
+import qualified Data.Text.IO          as TIO
+import           Data.Time.Format      (defaultTimeLocale, formatTime)
+import           Data.Time.LocalTime   (getZonedTime)
+import           Formatting            (sformat, (%), (%.))
+import qualified Formatting.Formatters as Format
 import           Frinfo.Colors
 import           Frinfo.Free
 import           Frinfo.Parsers
 import           Safe
-import           System.IO            as SIO
-import           Text.Printf
+import           System.IO             as SIO
 
 -- |Get name of the song that is playing
 getSong :: IO T.Text
@@ -26,12 +27,16 @@ getNetAverage :: SystemState -> IO (T.Text, SystemState)
 getNetAverage oldState = do
     let oldNetState = netState oldState
     newState <- getNetStat
-    return (netSpeed . headDef defaultNetStat . sort $ zipWith netAverage oldNetState newState, oldState { netState = newState })
+    return (netSpeed . headDef defaultNetStat . sort $ zipWith netAverage oldNetState newState,
+            oldState { netState = newState })
 
 -- |Pretty print an Interface name and traffic
 netSpeed :: NetStat -> T.Text
-netSpeed (NetStat inter up down) = T.pack $ printf "%10s " (T.unpack inter) <> (printf "%5d" up <> "KB/s " <> downIcon) <> (printf "%5d" down <> "KB/s ")
-    where downIcon = T.unpack $ wrapColor upColor (wrapIcon "/home/arguggi/dotfiles/icons/xbm8x8/net_down_03.xbm")
+netSpeed (NetStat inter up down) = interfaceText <> downSpeed <> downIcon <> upSpeed
+    where interfaceText = padText inter 10
+          downSpeed = padWithUnit down 5 "KB/s"
+          upSpeed = padWithUnit up 5 "KB/s"
+          downIcon = wrapColor upColor (wrapIcon "/home/arguggi/dotfiles/icons/xbm8x8/net_down_03.xbm")
 
 -- |Get bits sent and received for every interface from @\/proc\/net\/dev@
 getNetStat :: IO [NetStat]
@@ -49,14 +54,16 @@ getCpuAverage oldState =
         let oldCpuState = cpuState oldState
         case Atto.parseOnly cpuStatParser stat of
             (Left _) -> return ("", oldState)
-            (Right newState) -> return (padShow $ zipWith cpuAverage oldCpuState newState, oldState {cpuState = newState})
+            (Right newState) -> return (padCpu $ zipWith cpuAverage oldCpuState newState,
+                                        oldState {cpuState = newState})
 
 parseNet :: T.Text -> NetStat
 parseNet x = getTotal $ T.words x
 
 -- |Parse @\/proc\/net\/dev@ file
 getTotal :: [T.Text] -> NetStat
-getTotal (interfaceName:upTotalT:_:_:_:_:_:_:_:downTotalT:_) = NetStat interfaceName (read . T.unpack $ upTotalT :: Integer) (read . T.unpack $ downTotalT :: Integer)
+getTotal (interfaceName:downTotalT:_:_:_:_:_:_:_:upTotalT:_) =
+    NetStat interfaceName (textToInteger upTotalT) (textToInteger downTotalT)
 getTotal _ = defaultNetStat
 
 -- |Get the time in the local time zone
@@ -117,18 +124,16 @@ getRam =
             totalGb = kbToMb (totalMemKb . T.words $ total)
             availableGb = kbToMb (totalMemKb . T.words $ available)
             freeGb = totalGb - availableGb
-        return $ padRam freeGb <> "M / " <> padRam totalGb <> "M"
+        return $ padWithUnit freeGb 4 "M" <> " / " <> padWithUnit totalGb 4 "M"
 
--- |Pad the ram text so that it's always al least wide 4 characters
-padRam :: Integer ->  T.Text
-padRam x = T.pack $ printf " %4d" x
 
 -- |Get the cpu fan RPM from @\/sys\/class\/hwmon\/hwmon1\/fan2_input@
 getCpuRpm :: IO T.Text
 getCpuRpm =
     withFile "/sys/class/hwmon/hwmon1/fan2_input" ReadMode $ \file -> do
         rpm <- TIO.hGetContents file
-        return . T.pack $ printf " %4d RPM" (readDef 0 $ T.unpack rpm :: Integer)
+        let rpmText = readDef 0 $ T.unpack rpm
+        return $ padWithUnit rpmText 4 "RPM"
 
 -- |Get Megabits from Kilobits
 kbToMb :: Integer -> Integer
@@ -136,7 +141,7 @@ kbToMb kb = quot kb 1024
 
 -- |Parse the @\/proc\/meminfo@ file
 totalMemKb :: [T.Text] -> Integer
-totalMemKb (_:total:_:_) = read . T.unpack $ total
+totalMemKb (_:total:_:_) = textToInteger total
 totalMemKb _ = 0
 
 -- | Pretty print seconds to @$DAYd $HOURh $MINm $SECs@, every number is padded so it's
@@ -146,10 +151,6 @@ toUptimeText totalSecs = padTime days "d" <> padTime hours "h" <> padTime minute
     where (days, remDays) = quotRem totalSecs secDay
           (hours, remHours) = quotRem remDays secHour
           (minutes, seconds) = quotRem remHours secMinute
-
--- |Pad the time units so they are always wide 2 charaters
-padTime :: Integer -> T.Text -> T.Text
-padTime x unit = T.pack ( printf " %2d" x) <> unit
 
 -- |Seconds in a day
 secDay :: Integer
@@ -171,12 +172,32 @@ netAverage :: NetStat -> NetStat -> NetStat
 netAverage (NetStat _ up1 down1) (NetStat interface2 up2 down2) =
     NetStat interface2 (quot (up2 - up1) 1024) (quot (down2 - down1) 1024)
 
+-- |Read an Integer defaulting to 0 on error
+textToInteger :: T.Text -> Integer
+textToInteger = (readDef 0) . T.unpack
+
 -- |Safe 'quot' that returns 0 if the denominator is 0
 quot' :: Integer -> Integer -> Integer
 quot' _ 0 = 0
 quot' a b = quot a b
 
--- |Pad the cpu % so they are always wide 3 characters
-padShow :: [Integer] -> T.Text
-padShow x = T.pack $ foldl (<>) "" padded
-    where padded = map (printf " %3d%%") x
+padText
+    :: T.Text
+    -> Int
+    -> T.Text
+padText text width = sformat (Format.left width ' ' %. Format.stext) text
+
+padWithUnit :: Integer  -- ^ Number to pad
+            -> Int      -- ^ Min width
+            -> T.Text   -- ^ Unit
+            -> T.Text   -- ^ Final 'Text'
+padWithUnit x width = sformat ((Format.left width ' ' %. Format.int) % Format.stext % " ") x
+
+-- |Pad the time units so they are always wide 2 charaters
+padTime :: Integer -> T.Text -> T.Text
+padTime x = padWithUnit x 2
+
+-- |Pad the cpu % so they are always wide 3 characters and concat them
+padCpu :: [Integer] -> T.Text
+padCpu xs = foldl (<>) "" padded
+    where padded = map (\x -> padWithUnit x 3 "%") xs
