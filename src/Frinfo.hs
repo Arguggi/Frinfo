@@ -21,7 +21,7 @@ import qualified System.Process             as Process
 -- and will be used for the duretion of the program
 main :: IO ()
 main = do
-    hSetBuffering stdout NoBuffering
+    hSetBuffering stdout LineBuffering
     -- remove newline
     unameIO <- (T.pack . initSafe) <$> Process.readProcess "uname" ["-r"] []
     let startingState =  MyState (SystemState [defaultCpuStat] [defaultNetStat]) (StaticState unameIO)
