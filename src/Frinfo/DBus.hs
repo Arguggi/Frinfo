@@ -9,7 +9,7 @@ import           Data.Maybe
 import qualified Data.Text                  as T
 import qualified DBus                       as DBus
 import qualified DBus.Client                as DBusC
-import           Formatting                 (sformat, (%))
+import           Formatting                 (sformat, (%), (%.))
 import qualified Formatting.Formatters      as Format
 import           Frinfo.Scripts
 import           Safe
@@ -43,6 +43,10 @@ updateSong mvar = \signal -> do
                 -- exception occurs or song == Nothing for some reason
             Conc.modifyMVar_ mvar $ \x -> return (fromMaybe x song)
 
+-- | Maximum song info character length
+maxSongChars :: Int
+maxSongChars = 55
+
 -- | Get the songInfo from the Dictionary that Spotify sent
 songInfo :: Maybe DBus.Dictionary -> Maybe T.Text
 songInfo justdict = do
@@ -67,7 +71,7 @@ songInfo justdict = do
     artistA <- DBus.fromVariant artistV
     -- Spotify sends a list of Artists, only use the first
     artist <- fmap (headDef "") $ DBus.fromVariant artistA
-    return $ sformat (Format.string % " - " % Format.string) artist songName
+    return $ sformat ((Format.fitRight maxSongChars) %. (Format.string % " - " % Format.string)) artist songName
 
 -- | Key that points to the artist's name
 spotifyArtistKey :: T.Text
