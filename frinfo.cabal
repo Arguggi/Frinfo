@@ -17,12 +17,14 @@ library
   hs-source-dirs:      src
   exposed-modules:     Frinfo
                      , Frinfo.Colors
+                     , Frinfo.DBus
                      , Frinfo.Free
                      , Frinfo.Parsers
                      , Frinfo.Scripts
   build-depends:       base >= 4.7 && < 5
                      , async
                      , attoparsec
+                     , dbus
                      , formatting
                      , free
                      , mtl

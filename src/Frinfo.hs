@@ -11,6 +11,7 @@ import qualified Control.Monad.State.Strict as S
 import qualified Data.Text                  as T
 import qualified Data.Text.IO               as TIO
 import           Frinfo.Colors
+import           Frinfo.DBus
 import           Frinfo.Free
 import           Frinfo.Scripts
 import           Safe
@@ -24,7 +25,8 @@ main = do
     hSetBuffering stdout LineBuffering
     -- remove newline
     unameIO <- (T.pack . initSafe) <$> Process.readProcess "uname" ["-r"] []
-    let startingState =  MyState (SystemState [defaultCpuStat] [defaultNetStat]) (StaticState unameIO)
+    mvar <- connectToDbus
+    let startingState =  MyState (SystemState [defaultCpuStat] [defaultNetStat] mvar) (StaticState unameIO)
     printLoop startingState
 
 -- |The loops that keeps printing the system info
@@ -40,7 +42,7 @@ printLoop state = do
 freeStruc :: Free Info ()
 freeStruc = do
     icon headphoneColor "/home/arguggi/dotfiles/icons/xbm8x8/phones.xbm"
-    script getSong
+    scriptState getSong
     separator
     icon ramColor "/home/arguggi/dotfiles/icons/stlarch/mem1.xbm"
     script getRam

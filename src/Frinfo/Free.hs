@@ -3,10 +3,13 @@
 
 module Frinfo.Free (module Frinfo.Free) where
 
+import qualified Control.Concurrent         as Conc
 import           Control.Monad.Free
 import qualified Control.Monad.State.Strict as S
 import           Data.Monoid
 import qualified Data.Text                  as T
+import           Formatting                 (sformat, (%), (%.))
+import qualified Formatting.Formatters      as Format
 import           Frinfo.Colors
 data Info next =
       Separator next
@@ -48,7 +51,9 @@ data SystemState = SystemState
     -- ^ List of all 'CpuStat', one for each core and 1 for the total average
     , netState :: [NetStat]
     -- ^ List of all 'NetStat', one for each interface
-    } deriving (Show)
+    , dbusState :: Conc.MVar T.Text
+    -- ^ The currently playing song
+    }
 
 -- |Static state that must be set at startup in 'main'
 data StaticState = StaticState
@@ -62,7 +67,7 @@ data MyState = MyState
     -- ^Dynamic state that will be updated
     , staticState :: StaticState
     -- ^Static state that should be set once at the start of the program
-    } deriving (Show)
+    }
 
 -- |Filesystem path
 type Path = T.Text
@@ -78,7 +83,8 @@ instance Eq NetStat where
 
 -- |Default script state
 defaultMyState :: MyState
-defaultMyState = MyState (SystemState [defaultCpuStat] [defaultNetStat]) (StaticState "uname")
+--defaultMyState = MyState (SystemState [defaultCpuStat] [defaultNetStat] Conc.newEmptyMVar) (StaticState "uname")
+defaultMyState = MyState (SystemState [defaultCpuStat] [defaultNetStat] undefined) (StaticState "uname")
 
 -- |Default Cpu stat
 defaultCpuStat :: CpuStat

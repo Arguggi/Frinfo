@@ -2,6 +2,7 @@
 
 module Frinfo.Scripts where
 
+import qualified Control.Concurrent    as Conc
 import qualified Data.Attoparsec.Text  as Atto
 import           Data.List             (sort)
 import           Data.Monoid
@@ -18,8 +19,16 @@ import           Safe
 import           System.IO             as SIO
 
 -- |Get name of the song that is playing
-getSong :: IO T.Text
-getSong = return "Test Song"
+getSong :: SystemState -> IO (T.Text, SystemState)
+getSong oldState = do
+    let mvar = dbusState oldState
+    songInfo <- Conc.tryReadMVar mvar
+    case songInfo of
+        Just song -> return (song, oldState)
+        Nothing   -> return (noSongPlaying, oldState)
+
+noSongPlaying :: T.Text
+noSongPlaying = "No Song Playing"
 
 -- | Return a new state with the interface that downloaded the most bits
 -- since the last state.
