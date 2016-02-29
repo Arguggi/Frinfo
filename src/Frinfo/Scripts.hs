@@ -4,7 +4,7 @@ module Frinfo.Scripts where
 
 import qualified Control.Concurrent    as Conc
 import qualified Data.Attoparsec.Text  as Atto
-import           Data.List             (sort)
+import           Data.List             (foldl', sort)
 import           Data.Monoid
 import qualified Data.Text             as T
 import qualified Data.Text.IO          as TIO
@@ -27,6 +27,7 @@ getSong oldState = do
         Just song -> return (song, oldState)
         Nothing   -> return (noSongPlaying, oldState)
 
+-- | Default text for an empty MVar in 'getSong'
 noSongPlaying :: T.Text
 noSongPlaying = "No Song Playing"
 
@@ -65,7 +66,7 @@ getCpuAverage oldState =
             (Left _) -> return ("", oldState)
             (Right newState) -> return (padCpu $ zipWith cpuAverage oldCpuState newState,
                                         oldState {cpuState = newState})
-
+-- | Parse a @\/proc\/net\/dev@ line
 parseNet :: T.Text -> NetStat
 parseNet x = getTotal $ T.words x
 
@@ -190,16 +191,18 @@ quot' :: Integer -> Integer -> Integer
 quot' _ 0 = 0
 quot' a b = quot a b
 
+-- | Pad 'T.Text' to width with spaces
 padText
     :: T.Text
     -> Int
     -> T.Text
 padText text width = sformat (Format.left width ' ' %. Format.stext) text
 
+-- | Pad Integer to width and append a Unit separated by a space
 padWithUnit :: Integer  -- ^ Number to pad
             -> Int      -- ^ Min width
             -> T.Text   -- ^ Unit
-            -> T.Text   -- ^ Final 'Text'
+            -> T.Text   -- ^ Final 'T.Text'
 padWithUnit x width = sformat ((Format.left width ' ' %. Format.int) % Format.stext % " ") x
 
 -- | Pad the time units so they are always wide 2 charaters
@@ -208,5 +211,5 @@ padTime x = padWithUnit x 2
 
 -- | Pad the cpu % so they are always wide 3 characters and concat them
 padCpu :: [Integer] -> T.Text
-padCpu xs = foldl (<>) "" padded
+padCpu xs = foldl' (<>) "" padded
     where padded = map (\x -> padWithUnit x 3 "%") xs

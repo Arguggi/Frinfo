@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveFunctor     #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Frinfo.Free (module Frinfo.Free) where
+module Frinfo.Free where
 
 import qualified Control.Concurrent         as Conc
 import           Control.Monad.Free
@@ -16,11 +16,11 @@ data Info next =
       -- ^ Add an icon, with a 'Color' and 'Path'
     | Static (StaticState -> T.Text) next
       -- ^ Add some fixed text. You have to specify the function
-      -- used to extract the Text from the StaticState data
+      -- used to extract the 'T.Text' from the 'StaticState' data
     | Script (IO T.Text) next
-      -- ^ Add some IO text.
+      -- ^ Add some 'IO T.text'.
     | ScriptState (SystemState -> IO (T.Text, SystemState)) next
-      -- ^ Add some IO text that also needs access to the previous SystemState
+      -- ^ Add some 'IO Text' that also needs access to the previous 'SystemState'
     deriving (Functor)
 
 -- | Cpu data taken from @\/proc\/stat@
@@ -36,21 +36,21 @@ data CpuStat = CpuStat
 -- | Interface data taken from @\/proc\/net\/dev@
 data NetStat = NetStat
     { interface :: T.Text
-    -- ^Inteface name (e.g. enp5s0)
+    -- ^ Inteface name (e.g. enp5s0)
     , downTotal :: Integer
-    -- ^The total bits downloaded
+    -- ^ Total bits downloaded
     , upTotal   :: Integer
-    -- ^The total bits uploaded
+    -- ^ Total bits uploaded
     } deriving (Show)
 
 -- | Dynamic state that will be used with the 'ScriptState' constructor
 data SystemState = SystemState
     { cpuState  :: [CpuStat]
-    -- ^ List of all 'CpuStat', one for each core and 1 for the total average
+    -- ^ List of all 'CpuStat', one for each core and one for the total average
     , netState  :: [NetStat]
     -- ^ List of all 'NetStat', one for each interface
     , dbusState :: Conc.MVar T.Text
-    -- ^ The currently playing song
+    -- ^ Currently playing song
     }
 
 -- | Static state that must be set at startup in 'main'
@@ -62,14 +62,15 @@ data StaticState = StaticState
 -- | State of the script
 data MyState = MyState
     { systemState :: SystemState
-    -- ^Dynamic state that will be updated
+    -- ^ Dynamic state that will be updated
     , staticState :: StaticState
-    -- ^Static state that should be set once at the start of the program
+    -- ^ Static state that should be set once at the start of the program
     }
 
 -- | Filesystem path
 type Path = T.Text
 
+-- | Specialized 'S.StateT' with 'MyState' and 'T.Text'
 type StateM = S.StateT MyState IO T.Text
 
 instance Ord NetStat where
@@ -126,11 +127,11 @@ script x = liftF (Script x ())
 scriptState :: (SystemState -> IO (T.Text, SystemState)) -> Free Info ()
 scriptState x = liftF (ScriptState x ())
 
-
 -- |Interpret the Info + Free Monad.
 -- This outputs 'IO' ('T.Text', 'MyState').
--- The 'T.Text' should be fed to dzen2
--- The 'MyState' should be used in the next print statement
+-- The 'T.Text' should be fed to dzen2.
+--
+-- The 'MyState' should be used in the next print statement.
 printDzen :: Free Info () -> StateM
 printDzen (Free (Separator next)) = do
     rest <- printDzen next
