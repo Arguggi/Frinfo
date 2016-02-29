@@ -18,7 +18,7 @@ import           Safe
 import           System.IO
 import qualified System.Process             as Process
 
--- |The main function must build a new 'StaticState' that will remain unchanged
+-- | The main function must build a new 'StaticState' that will remain unchanged
 -- and will be used for the duretion of the program
 main :: IO ()
 main = do
@@ -29,7 +29,7 @@ main = do
     let startingState =  MyState (SystemState [defaultCpuStat] [defaultNetStat] mvar) (StaticState unameIO)
     printLoop startingState
 
--- |The loops that keeps printing the system info
+-- | The loops that keeps printing the system info
 printLoop :: MyState -> IO ()
 printLoop state = do
     (output, newState) <- S.runStateT (printDzen freeStruc) state
@@ -37,7 +37,7 @@ printLoop state = do
     Conc.threadDelay (secondsDelay 1)
     printLoop newState
 
--- |Build the data structure that will then be 'interpreted'
+-- | Build the data structure that will then be 'interpreted'
 -- See 'Info' for the available constructors
 freeStruc :: Free Info ()
 freeStruc = do

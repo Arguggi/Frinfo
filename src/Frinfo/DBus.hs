@@ -2,15 +2,15 @@
 
 module Frinfo.DBus where
 
-import qualified Control.Concurrent         as Conc
+import qualified Control.Concurrent    as Conc
 import           Control.Exception
-import qualified Data.List                  as L
+import qualified Data.List             as L
 import           Data.Maybe
-import qualified Data.Text                  as T
-import qualified DBus                       as DBus
-import qualified DBus.Client                as DBusC
-import           Formatting                 (sformat, (%), (%.))
-import qualified Formatting.Formatters      as Format
+import qualified Data.Text             as T
+import qualified DBus                  as DBus
+import qualified DBus.Client           as DBusC
+import           Formatting            (sformat, (%), (%.))
+import qualified Formatting.Formatters as Format
 import           Frinfo.Scripts
 import           Safe
 

@@ -8,8 +8,6 @@ import           Control.Monad.Free
 import qualified Control.Monad.State.Strict as S
 import           Data.Monoid
 import qualified Data.Text                  as T
-import           Formatting                 (sformat, (%), (%.))
-import qualified Formatting.Formatters      as Format
 import           Frinfo.Colors
 data Info next =
       Separator next
@@ -25,7 +23,7 @@ data Info next =
       -- ^ Add some IO text that also needs access to the previous SystemState
     deriving (Functor)
 
--- |Cpu data taken from @\/proc\/stat@
+-- | Cpu data taken from @\/proc\/stat@
 data CpuStat = CpuStat
     { user   :: Integer
     -- ^User stats
@@ -35,7 +33,7 @@ data CpuStat = CpuStat
     -- ^Idle stats
     } deriving (Show)
 
--- |Interface data taken from @\/proc\/net\/dev@
+-- | Interface data taken from @\/proc\/net\/dev@
 data NetStat = NetStat
     { interface :: T.Text
     -- ^Inteface name (e.g. enp5s0)
@@ -45,23 +43,23 @@ data NetStat = NetStat
     -- ^The total bits uploaded
     } deriving (Show)
 
--- |Dynamic state that will be used with the 'ScriptState' constructor
+-- | Dynamic state that will be used with the 'ScriptState' constructor
 data SystemState = SystemState
-    { cpuState :: [CpuStat]
+    { cpuState  :: [CpuStat]
     -- ^ List of all 'CpuStat', one for each core and 1 for the total average
-    , netState :: [NetStat]
+    , netState  :: [NetStat]
     -- ^ List of all 'NetStat', one for each interface
     , dbusState :: Conc.MVar T.Text
     -- ^ The currently playing song
     }
 
--- |Static state that must be set at startup in 'main'
+-- | Static state that must be set at startup in 'main'
 data StaticState = StaticState
     { uname :: T.Text
     -- ^ Output of @uname -r@
     } deriving (Show)
 
--- |State of the script
+-- | State of the script
 data MyState = MyState
     { systemState :: SystemState
     -- ^Dynamic state that will be updated
@@ -69,7 +67,7 @@ data MyState = MyState
     -- ^Static state that should be set once at the start of the program
     }
 
--- |Filesystem path
+-- | Filesystem path
 type Path = T.Text
 
 type StateM = S.StateT MyState IO T.Text
@@ -81,20 +79,20 @@ instance Eq NetStat where
     (NetStat _ d1 _) ==  (NetStat _ d2 _) = d1 == d2
 
 
--- |Default script state
+-- | Default script state
 defaultMyState :: MyState
 --defaultMyState = MyState (SystemState [defaultCpuStat] [defaultNetStat] Conc.newEmptyMVar) (StaticState "uname")
 defaultMyState = MyState (SystemState [defaultCpuStat] [defaultNetStat] undefined) (StaticState "uname")
 
--- |Default Cpu stat
+-- | Default Cpu stat
 defaultCpuStat :: CpuStat
 defaultCpuStat = CpuStat 0 0 0
 
--- |Default Network stat
+-- | Default Network stat
 defaultNetStat :: NetStat
 defaultNetStat = NetStat "Empty" 0 0
 
--- |The 'ScriptState' constructor takes a ('SystemState' -> 'IO' ('T.Text', 'SystemState')
+-- | The 'ScriptState' constructor takes a ('SystemState' -> 'IO' ('T.Text', 'SystemState')
 -- function but we need a function that takes and returns a 'MyState'
 liftSystemScript :: (SystemState -> IO (T.Text, SystemState)) -> StateM
 liftSystemScript systemScript = do
@@ -103,28 +101,28 @@ liftSystemScript systemScript = do
     S.put (MyState newS (staticState state))
     return output
 
--- |Separator that is used when the 'Separator' constructor is used
+-- | Separator that is used when the 'Separator' constructor is used
 sep :: T.Text
 sep = " | "
 
 -- Lift Info into the Free Monad
--- |Lift 'Separator'
+-- | Lift 'Separator'
 separator :: Free Info ()
 separator = liftF (Separator ())
 
--- |Lift 'Icon'
+-- | Lift 'Icon'
 icon :: Color -> Path -> Free Info ()
 icon color path  = liftF (Icon color path ())
 
--- |Lift 'Static'
+-- | Lift 'Static'
 static :: (StaticState -> T.Text) -> Free Info ()
 static text = liftF (Static text ())
 
--- |Lift 'Script'
+-- | Lift 'Script'
 script :: IO T.Text -> Free Info ()
 script x = liftF (Script x ())
 
--- |Lift 'ScriptState'
+-- | Lift 'ScriptState'
 scriptState :: (SystemState -> IO (T.Text, SystemState)) -> Free Info ()
 scriptState x = liftF (ScriptState x ())
 
@@ -158,10 +156,10 @@ printDzen (Pure _) =  return ""
 
 
 -- Utility wrappers
--- |Wrap some text in a color
+-- | Wrap some text in a color
 wrapColor :: Color -> T.Text -> T.Text
 wrapColor color text = "^fg(" <> color <> ")" <> text <> "^fg()"
 
--- |Wrap some path so that it will interpreted like an image by dzen
+-- | Wrap some path so that it will interpreted like an image by dzen
 wrapIcon :: T.Text -> T.Text
 wrapIcon path = "^i(" <> path <> ") "
