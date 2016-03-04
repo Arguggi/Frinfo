@@ -134,7 +134,7 @@ getRam =
             totalGb = kbToMb (totalMemKb . T.words $ total)
             availableGb = kbToMb (totalMemKb . T.words $ available)
             freeGb = totalGb - availableGb
-        return $ padWithUnit freeGb 4 "M" <> " / " <> padWithUnit totalGb 4 "M"
+        return $ padWithUnit freeGb 4 "M" <> "/ " <> padWithUnit totalGb 4 "M"
 
 
 -- | Get the cpu fan RPM from @\/sys\/class\/hwmon\/hwmon1\/fan2_input@

@@ -70,7 +70,7 @@ songInfo justdict = do
     (_, artistV) <- L.find (correctTuple spotifyArtistKey) items
     artistA <- DBus.fromVariant artistV
     -- Spotify sends a list of Artists, only use the first
-    artist <- fmap (headDef "") $ DBus.fromVariant artistA
+    artist <- headDef "" <$> DBus.fromVariant artistA
     return $ sformat ((Format.fitRight maxSongChars) %. (Format.string % " - " % Format.string)) artist songName
 
 -- | Key that points to the artist's name
