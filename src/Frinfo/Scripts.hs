@@ -27,6 +27,18 @@ getSong oldState = do
         Just song -> return (song, oldState)
         Nothing   -> return (noSongPlaying, oldState)
 
+-- | Get total unread emails
+getUnreadEmails :: SystemState -> IO (T.Text, SystemState)
+getUnreadEmails oldState = do
+    let mvar = emailState oldState
+    unreadEmails <- Conc.tryReadMVar mvar
+    case unreadEmails of
+        Just num -> return (unread num, oldState)
+        Nothing  -> return (noEmails, oldState)
+    where
+        unread x = sformat ((Format.left 2 ' ') %. Format.int) x
+        noEmails = " 0" :: T.Text
+
 -- | Default text for an empty MVar in 'getSong'
 noSongPlaying :: T.Text
 noSongPlaying = "No Song Playing"

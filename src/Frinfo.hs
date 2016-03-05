@@ -13,6 +13,7 @@ import qualified Data.Text.IO               as TIO
 import           Frinfo.Colors
 import           Frinfo.DBus
 import           Frinfo.Free
+import           Frinfo.INotify
 import           Frinfo.Scripts
 import           Safe
 import           System.IO
@@ -25,8 +26,15 @@ main = do
     hSetBuffering stdout LineBuffering
     -- remove newline
     unameIO <- (T.pack . initSafe) <$> Process.readProcess "uname" ["-r"] []
-    mvar <- connectToDbus
-    let startingState =  MyState (SystemState [defaultCpuStat] [defaultNetStat] mvar) (StaticState unameIO)
+    dbusMVar <- connectToDbus
+    emailMVar <- watchEmailFolder
+    let startingState = MyState dynamicState staticState'
+        dynamicState = SystemState { cpuState = [defaultCpuStat]
+                                   , netState = [defaultNetStat]
+                                   , dbusState = dbusMVar
+                                   , emailState = emailMVar
+                                   }
+        staticState' = StaticState { uname = unameIO }
     printLoop startingState
 
 -- | The loops that keeps printing the system info
@@ -43,6 +51,8 @@ freeStruc :: Free Info ()
 freeStruc = do
     icon headphoneColor "/home/arguggi/dotfiles/icons/xbm8x8/phones.xbm"
     scriptState getSong
+    separator
+    scriptState getUnreadEmails
     separator
     icon ramColor "/home/arguggi/dotfiles/icons/stlarch/mem1.xbm"
     script getRam

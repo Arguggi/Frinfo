@@ -19,19 +19,24 @@ library
                      , Frinfo.Colors
                      , Frinfo.DBus
                      , Frinfo.Free
+                     , Frinfo.INotify
                      , Frinfo.Parsers
                      , Frinfo.Scripts
   build-depends:       base >= 4.7 && < 5
                      , async
                      , attoparsec
                      , dbus
+                     , foldl
                      , formatting
                      , free
                      , mtl
+                     , hinotify
                      , process
                      , safe
+                     , system-filepath
                      , text
                      , time
+                     , turtle
   default-language:    Haskell2010
 
 executable frinfo-exe

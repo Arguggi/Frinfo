@@ -45,12 +45,14 @@ data NetStat = NetStat
 
 -- | Dynamic state that will be used with the 'ScriptState' constructor
 data SystemState = SystemState
-    { cpuState  :: [CpuStat]
+    { cpuState   :: [CpuStat]
     -- ^ List of all 'CpuStat', one for each core and one for the total average
-    , netState  :: [NetStat]
+    , netState   :: [NetStat]
     -- ^ List of all 'NetStat', one for each interface
-    , dbusState :: Conc.MVar T.Text
+    , dbusState  :: Conc.MVar T.Text
     -- ^ Currently playing song
+    , emailState :: Conc.MVar Int
+    -- ^ Number of unread emails
     }
 
 -- | Static state that must be set at startup in 'main'
@@ -83,7 +85,7 @@ instance Eq NetStat where
 -- | Default script state
 defaultMyState :: MyState
 --defaultMyState = MyState (SystemState [defaultCpuStat] [defaultNetStat] Conc.newEmptyMVar) (StaticState "uname")
-defaultMyState = MyState (SystemState [defaultCpuStat] [defaultNetStat] undefined) (StaticState "uname")
+defaultMyState = MyState (SystemState [defaultCpuStat] [defaultNetStat] undefined undefined) (StaticState "uname")
 
 -- | Default Cpu stat
 defaultCpuStat :: CpuStat

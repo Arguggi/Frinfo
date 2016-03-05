@@ -28,8 +28,8 @@ matchSpotify = DBusC.matchAny { DBusC.matchPath = Just "/org/mpris/MediaPlayer2"
 
 -- | Return the callback that will be used when a signal is received using the
 -- 'MVar'
-updateSong :: Conc.MVar T.Text -> (DBus.Signal -> IO ())
-updateSong mvar = \signal -> do
+updateSong :: Conc.MVar T.Text -> DBus.Signal -> IO ()
+updateSong mvar signal = do
     -- This is pretty ugly, fixme
     if length (DBus.signalBody signal) < 2
        then return ()
