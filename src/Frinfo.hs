@@ -55,23 +55,19 @@ freeStruc = do
     icon emailColor "/home/arguggi/dotfiles/icons/stlarch/mail7.xbm"
     scriptState getUnreadEmails
     separator
-    icon ramColor "/home/arguggi/dotfiles/icons/stlarch/mem1.xbm"
     script getRam
     separator
     scriptState getNetAverage
     icon upColor "/home/arguggi/dotfiles/icons/xbm8x8/net_up_03.xbm"
     separator
-    icon cpuColor "/home/arguggi/dotfiles/icons/stlarch/cpu1.xbm"
     scriptState getCpuAverage
     script getCpuRpm
     separator
     icon unameColor "/home/arguggi/dotfiles/icons/xbm8x8/arch_10x10.xbm"
     static uname
     separator
-    icon uptimeColor "/home/arguggi/dotfiles/icons/stlarch/logout1.xbm"
     script getUptime
     separator
-    icon clockColor "/home/arguggi/dotfiles/icons/stlarch/clock1.xbm"
     script getTime
 
 -- | Convert number to seconds
