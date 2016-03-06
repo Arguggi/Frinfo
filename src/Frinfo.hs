@@ -52,6 +52,7 @@ freeStruc = do
     icon headphoneColor "/home/arguggi/dotfiles/icons/xbm8x8/phones.xbm"
     scriptState getSong
     separator
+    icon emailColor "/home/arguggi/dotfiles/icons/stlarch/mail7.xbm"
     scriptState getUnreadEmails
     separator
     icon ramColor "/home/arguggi/dotfiles/icons/stlarch/mem1.xbm"

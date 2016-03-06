@@ -9,6 +9,9 @@ type Color = T.Text
 headphoneColor :: Color
 headphoneColor = "#ea8b2a"
 
+emailColor :: Color
+emailColor = "#ffffff"
+
 ramColor :: Color
 ramColor = "#e86f0c"
 
