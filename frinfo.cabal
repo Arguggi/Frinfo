@@ -19,16 +19,19 @@ library
                      , Frinfo.Colors
                      , Frinfo.DBus
                      , Frinfo.Free
+                     , Frinfo.MPD
                      , Frinfo.INotify
                      , Frinfo.Parsers
                      , Frinfo.Scripts
   build-depends:       base >= 4.7 && < 5
                      , async
                      , attoparsec
+                     , containers
                      , dbus
                      , foldl
                      , formatting
                      , free
+                     , libmpd
                      , mtl
                      , hinotify
                      , process

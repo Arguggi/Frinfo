@@ -11,16 +11,13 @@ import qualified DBus                  as DBus
 import qualified DBus.Client           as DBusC
 import           Formatting            (sformat, (%), (%.))
 import qualified Formatting.Formatters as Format
-import           Frinfo.Scripts
 import           Safe
 
 -- | Connect to dbus and return a new MVar that will be updated when the song
 -- changes
-connectToDbus :: IO (Conc.MVar T.Text)
-connectToDbus = bracketOnError DBusC.connectSession DBusC.disconnect $ \client -> do
-    mvar <- Conc.newMVar noSongPlaying
-    _ <- DBusC.addMatch client matchSpotify (updateSong mvar)
-    return mvar
+connectToDbus :: Conc.MVar T.Text -> IO DBusC.SignalHandler
+connectToDbus mvar = bracketOnError DBusC.connectSession DBusC.disconnect $ \client ->
+    DBusC.addMatch client matchSpotify (updateSong mvar)
 
 -- | Only match the spotify dbus
 matchSpotify :: DBusC.MatchRule

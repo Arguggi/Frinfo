@@ -13,6 +13,7 @@ import qualified Data.Text.IO               as TIO
 import           Frinfo.Colors
 import           Frinfo.DBus
 import           Frinfo.Free
+import           Frinfo.MPD
 import           Frinfo.INotify
 import           Frinfo.Scripts
 import           Safe
@@ -26,12 +27,14 @@ main = do
     hSetBuffering stdout LineBuffering
     -- remove newline
     unameIO <- (T.pack . initSafe) <$> Process.readProcess "uname" ["-r"] []
-    dbusMVar <- connectToDbus
+    songMVar <- Conc.newMVar noSongPlaying
+    _ <- connectToDbus songMVar
+    _ <- connectToMPD songMVar
     emailMVar <- watchEmailFolder
     let startingState = MyState dynamicState staticState'
         dynamicState = SystemState { cpuState = [defaultCpuStat]
                                    , netState = [defaultNetStat]
-                                   , dbusState = dbusMVar
+                                   , dbusState = songMVar
                                    , emailState = emailMVar
                                    }
         staticState' = StaticState { uname = unameIO }
