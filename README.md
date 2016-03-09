@@ -10,9 +10,14 @@ $ stack build
 ```
 ## How-to
 
-The output of `frinfo-exe` is meant to be piped to dzen:
+The output of `frinfo` is meant to be piped to dzen:
 ```
-$ frinfo-exe | dzen2
+$ frinfo | dzen2
+```
+
+To see which features are available:
+```
+$ frinfo --help
 ```
 
 ## Target OS

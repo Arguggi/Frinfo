@@ -17,9 +17,8 @@ data Action = Add | Remove
 -- | Use 'IN.addWatch' to watch for 'IN.Create', 'IN.MoveIn', 'IN.Delete' and
 -- 'IN.MoveOut' events in all @new\/@ subfolders of 'mailFolder'. Updates the
 -- returned 'Conc.MVar' on each callback
-watchEmailFolder :: IO (Conc.MVar Int)
-watchEmailFolder = bracketOnError IN.initINotify IN.killINotify $ \notify -> do
-    mvar <- Conc.newMVar 0
+watchEmailFolder :: Conc.MVar Int -> IO ()
+watchEmailFolder mvar = bracketOnError IN.initINotify IN.killINotify $ \notify -> do
     folders <- allNewFolders
     Prelude.mapM_ (\folder -> do
         files <- getTotalFiles folder
@@ -31,7 +30,6 @@ watchEmailFolder = bracketOnError IN.initINotify IN.killINotify $ \notify -> do
             (toPreludeFp folder)
             (eventLength mvar))
         folders
-    return mvar
 
 -- | Turtle gives back 'FS.FilePath' but 'System.INotify' uses 'Prelude.FilePath'
 -- so we have to convert between the two.

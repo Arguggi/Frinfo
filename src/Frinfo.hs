@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric     #-}
 
 module Frinfo
         ( main
@@ -6,6 +7,7 @@ module Frinfo
         ) where
 
 import qualified Control.Concurrent         as Conc
+import           Control.Monad
 import           Control.Monad.Free
 import qualified Control.Monad.State.Strict as S
 import qualified Data.Text                  as T
@@ -16,21 +18,48 @@ import           Frinfo.Free
 import           Frinfo.MPD
 import           Frinfo.INotify
 import           Frinfo.Scripts
+import           Options.Applicative
 import           Safe
 import           System.IO
 import qualified System.Process             as Process
+
+data Flags = Flags
+    { mpd :: Bool
+    , spotify :: Bool
+    , inotify :: Bool
+    }
+
+options :: Parser Flags
+options = Flags
+    <$> switch
+        ( long "mpd"
+        <> help "Keep getting song info from MPD")
+    <*> switch
+        ( long "spotify"
+        <> help "Keep getting song info from Spotify")
+    <*> switch
+        ( long "inotify"
+        <> help "Watch for new files in the email folder. (Default ~/Mail/)")
+
+helpOpts :: ParserInfo Flags
+helpOpts = info (helper <*> options)
+    ( fullDesc
+    <> progDesc "Print system information to stdout"
+    <> header "Frinfo")
 
 -- | The main function must build a new 'StaticState' that will remain unchanged
 -- and will be used for the duretion of the program
 main :: IO ()
 main = do
     hSetBuffering stdout LineBuffering
+    flags <- execParser helpOpts
     -- remove newline
     unameIO <- (T.pack . initSafe) <$> Process.readProcess "uname" ["-r"] []
     songMVar <- Conc.newMVar Config.noSongPlaying
-    _ <- connectToDbus songMVar
-    _ <- connectToMPD songMVar
-    emailMVar <- watchEmailFolder
+    emailMVar <- Conc.newMVar 0
+    when (mpd flags) (void $ connectToMPD songMVar)
+    when (spotify flags) (void $ connectToDbus songMVar)
+    when (inotify flags) (void $ watchEmailFolder emailMVar)
     let startingState = MyState dynamicState staticState'
         dynamicState = SystemState { cpuState = [defaultCpuStat]
                                    , netState = [defaultNetStat]
