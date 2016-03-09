@@ -7,15 +7,12 @@ import           Control.Exception
 import           Control.Foldl             as F
 import qualified Data.Text                 as T
 import qualified Filesystem.Path.CurrentOS as FS
+import qualified Frinfo.Config             as Config
 import qualified System.INotify            as IN
 import qualified Turtle                    as Tur hiding (Text, FilePath)
 
 -- | Boolean blindness is not fun
 data Action = Add | Remove
-
--- | Folder where offlineimap saves all the emails
-mailFolder :: FS.FilePath
-mailFolder = "/home/arguggi/Mail/"
 
 -- | Use 'IN.addWatch' to watch for 'IN.Create', 'IN.MoveIn', 'IN.Delete' and
 -- 'IN.MoveOut' events in all @new\/@ subfolders of 'mailFolder'. Updates the
@@ -63,7 +60,7 @@ updateMVar mvar action isDir =
 
 -- | Find all the subfolders of 'mailFolder' that end with @\/new@
 allNewFolders :: IO [FS.FilePath]
-allNewFolders = Tur.fold (Tur.find (Tur.suffix "/new") mailFolder) F.list
+allNewFolders = Tur.fold (Tur.find (Tur.suffix "/new") Config.mailFolder) F.list
 
 -- | Total number of files in a 'FS.FilePath'
 getTotalFiles :: FS.FilePath -> IO Int

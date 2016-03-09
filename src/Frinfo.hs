@@ -10,7 +10,7 @@ import           Control.Monad.Free
 import qualified Control.Monad.State.Strict as S
 import qualified Data.Text                  as T
 import qualified Data.Text.IO               as TIO
-import           Frinfo.Colors
+import qualified Frinfo.Config              as Config
 import           Frinfo.DBus
 import           Frinfo.Free
 import           Frinfo.MPD
@@ -27,7 +27,7 @@ main = do
     hSetBuffering stdout LineBuffering
     -- remove newline
     unameIO <- (T.pack . initSafe) <$> Process.readProcess "uname" ["-r"] []
-    songMVar <- Conc.newMVar noSongPlaying
+    songMVar <- Conc.newMVar Config.noSongPlaying
     _ <- connectToDbus songMVar
     _ <- connectToMPD songMVar
     emailMVar <- watchEmailFolder
@@ -40,7 +40,7 @@ main = do
         staticState' = StaticState { uname = unameIO }
     printLoop startingState
 
--- | The loops that keeps printing the system info
+-- | The loop that keeps printing the system info
 printLoop :: MyState -> IO ()
 printLoop state = do
     (output, newState) <- S.runStateT (printDzen freeStruc) state
@@ -52,21 +52,21 @@ printLoop state = do
 -- See 'Info' for the available constructors
 freeStruc :: Free Info ()
 freeStruc = do
-    icon headphoneColor "/home/arguggi/dotfiles/icons/xbm8x8/phones.xbm"
+    icon Config.headphoneColor Config.songIcon
     scriptState getSong
     separator
-    icon emailColor "/home/arguggi/dotfiles/icons/stlarch/mail7.xbm"
+    icon Config.emailColor Config.emailIcon
     scriptState getUnreadEmails
     separator
     script getRam
     separator
     scriptState getNetAverage
-    icon upColor "/home/arguggi/dotfiles/icons/xbm8x8/net_up_03.xbm"
+    icon Config.upColor Config.upSpeedIcon
     separator
     scriptState getCpuAverage
     script getCpuRpm
     separator
-    icon unameColor "/home/arguggi/dotfiles/icons/xbm8x8/arch_10x10.xbm"
+    icon Config.unameColor Config.unameIcon
     static uname
     separator
     script getUptime

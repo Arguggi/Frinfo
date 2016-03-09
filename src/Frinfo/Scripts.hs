@@ -12,7 +12,7 @@ import           Data.Time.Format      (defaultTimeLocale, formatTime)
 import           Data.Time.LocalTime   (getZonedTime)
 import           Formatting            (sformat, (%), (%.))
 import qualified Formatting.Formatters as Format
-import           Frinfo.Colors
+import qualified Frinfo.Config         as Config
 import           Frinfo.Free
 import           Frinfo.Parsers
 import           Safe
@@ -25,7 +25,7 @@ getSong oldState = do
     songInfo <- Conc.tryReadMVar mvar
     case songInfo of
         Just song -> return (song, oldState)
-        Nothing   -> return (noSongPlaying, oldState)
+        Nothing   -> return (Config.noSongPlaying, oldState)
 
 -- | Get total unread emails
 getUnreadEmails :: SystemState -> IO (T.Text, SystemState)
@@ -34,14 +34,9 @@ getUnreadEmails oldState = do
     unreadEmails <- Conc.tryReadMVar mvar
     case unreadEmails of
         Just num -> return (unread num, oldState)
-        Nothing  -> return (noEmails, oldState)
+        Nothing  -> return (Config.noEmails, oldState)
     where
         unread x = sformat ((Format.left 2 ' ') %. Format.int) x
-        noEmails = " 0" :: T.Text
-
--- | Default text for an empty MVar in 'getSong'
-noSongPlaying :: T.Text
-noSongPlaying = "No Song Playing"
 
 -- | Return a new state with the interface that downloaded the most bits
 -- since the last state.
@@ -58,7 +53,7 @@ netSpeed (NetStat inter up down) = interfaceText <> downSpeed <> downIcon <> upS
     where interfaceText = padText inter 10
           downSpeed = padWithUnit down 5 "KB/s"
           upSpeed = padWithUnit up 5 "KB/s"
-          downIcon = wrapColor upColor (wrapIcon "/home/arguggi/dotfiles/icons/xbm8x8/net_down_03.xbm")
+          downIcon = wrapColor Config.upColor (wrapIcon Config.downSpeedIcon)
 
 -- | Get bits sent and received for every interface from @\/proc\/net\/dev@
 getNetStat :: IO [NetStat]

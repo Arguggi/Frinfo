@@ -8,11 +8,11 @@ import           Control.Monad.Free
 import qualified Control.Monad.State.Strict as S
 import           Data.Monoid
 import qualified Data.Text                  as T
-import           Frinfo.Colors
+import qualified Frinfo.Config              as Config
 data Info next =
       Separator next
       -- ^ Add a simple separator, defined as 'sep'
-    | Icon Color Path next
+    | Icon Config.Color Path next
       -- ^ Add an icon, with a 'Color' and 'Path'
     | Static (StaticState -> T.Text) next
       -- ^ Add some fixed text. You have to specify the function
@@ -114,7 +114,7 @@ separator :: Free Info ()
 separator = liftF (Separator ())
 
 -- | Lift 'Icon'
-icon :: Color -> Path -> Free Info ()
+icon :: Config.Color -> Path -> Free Info ()
 icon color path  = liftF (Icon color path ())
 
 -- | Lift 'Static'
@@ -160,7 +160,7 @@ printDzen (Pure _) =  return ""
 
 -- Utility wrappers
 -- | Wrap some text in a color
-wrapColor :: Color -> T.Text -> T.Text
+wrapColor :: Config.Color -> T.Text -> T.Text
 wrapColor color text = "^fg(" <> color <> ")" <> text <> "^fg()"
 
 -- | Wrap some path so that it will interpreted like an image by dzen
