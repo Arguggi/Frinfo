@@ -9,26 +9,25 @@ import           Formatting            (sformat, (%))
 import qualified Formatting.Formatters as Format
 import qualified Network.MPD           as MPD
 
--- | Setup the 'Conc.MVar' by first checking if MPD is running and then forks by calling
--- 'startMPDThread'
-connectToMPD :: Conc.MVar T.Text -> IO Conc.ThreadId
+-- | Setup the 'Conc.MVar' by first checking if MPD is running and then calls
+-- 'startMPDLoop'
+connectToMPD :: Conc.MVar T.Text -> IO ()
 connectToMPD mvar = do
     -- Get the playing song when we first start
     songResponse <- MPD.withMPD MPD.currentSong
     case songResponse of
         -- If we are unable to get the song name
         -- we don't have to update the 'Conc.MVar'
-        (Left _ ) -> startMPDThread mvar Nothing
+        (Left _ ) -> startMPDLoop mvar Nothing
         (Right song) -> do
             let songInfo = getSongInfo song
-            startMPDThread mvar songInfo
+            startMPDLoop mvar songInfo
 
--- | Updates the 'Conc.Mvar' if necessary and then forks a new thread that
--- keeps updating it
-startMPDThread :: Conc.MVar T.Text -> Maybe T.Text -> IO Conc.ThreadId
-startMPDThread mvar text = do
+-- | Updates the 'Conc.Mvar' if necessary and then starts the 'loop'
+startMPDLoop :: Conc.MVar T.Text -> Maybe T.Text -> IO ()
+startMPDLoop mvar text = do
     updateSong mvar text
-    Conc.forkIO (loop mvar)
+    loop mvar
 
 -- | IDLE for a 'MPD.PlayerS' update and then update the 'Conc.MVar'
 loop :: Conc.MVar T.Text -> IO ()

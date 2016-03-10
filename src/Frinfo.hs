@@ -57,9 +57,9 @@ main = do
     unameIO <- (T.pack . initSafe) <$> Process.readProcess "uname" ["-r"] []
     songMVar <- Conc.newMVar Config.noSongPlaying
     emailMVar <- Conc.newMVar 0
-    when (mpd flags) (void $ connectToMPD songMVar)
-    when (spotify flags) (void $ connectToDbus songMVar)
-    when (inotify flags) (void $ watchEmailFolder emailMVar)
+    when (mpd flags)     (void . Conc.forkIO $ connectToMPD songMVar)
+    when (spotify flags) (void . Conc.forkIO $ connectToDbus songMVar)
+    when (inotify flags) (void . Conc.forkIO $ watchEmailFolder emailMVar)
     let startingState = MyState dynamicState staticState'
         dynamicState = SystemState { cpuState = [defaultCpuStat]
                                    , netState = [defaultNetStat]

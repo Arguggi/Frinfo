@@ -15,9 +15,10 @@ import           Safe
 
 -- | Connect to dbus and return a new MVar that will be updated when the song
 -- changes
-connectToDbus :: Conc.MVar T.Text -> IO DBusC.SignalHandler
-connectToDbus mvar = bracketOnError DBusC.connectSession DBusC.disconnect $ \client ->
-    DBusC.addMatch client matchSpotify (updateSong mvar)
+connectToDbus :: Conc.MVar T.Text -> IO ()
+connectToDbus mvar = bracketOnError DBusC.connectSession DBusC.disconnect $ \client -> do
+    _ <- DBusC.addMatch client matchSpotify (updateSong mvar)
+    return ()
 
 -- | Only match the spotify dbus
 matchSpotify :: DBusC.MatchRule
