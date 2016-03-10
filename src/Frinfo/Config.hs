@@ -55,5 +55,5 @@ noEmails :: T.Text
 noEmails = " 0"
 
 -- | Folder where offlineimap saves all the emails
-mailFolder :: FS.FilePath
+mailFolder :: T.Text
 mailFolder = "/home/arguggi/Mail/"

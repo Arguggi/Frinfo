@@ -4,7 +4,8 @@ module Frinfo.INotify where
 
 import qualified Control.Concurrent        as Conc
 import           Control.Exception
-import           Control.Foldl             as F
+import qualified Control.Foldl             as F
+import           Control.Monad
 import qualified Data.Text                 as T
 import qualified Filesystem.Path.CurrentOS as FS
 import qualified Frinfo.Config             as Config
@@ -51,14 +52,19 @@ updateMVar
     -> Bool -- ^ if the file is a folder we ignore it
     -> IO ()
 updateMVar mvar action isDir =
-    if isDir then return ()
-    else case action of
+    unless isDir $ case action of
         Add -> Conc.modifyMVar_ mvar $ \x -> return (x + 1)
         Remove -> Conc.modifyMVar_ mvar $ \x -> return (x - 1)
 
--- | Find all the subfolders of 'mailFolder' that end with @\/new@
+-- | Find all the subfolders of 'mailFolder' called @new@
 allNewFolders :: IO [FS.FilePath]
-allNewFolders = Tur.fold (Tur.find (Tur.suffix "/new") Config.mailFolder) F.list
+allNewFolders = Tur.fold (fmap FS.fromText dirStream) F.list
+          -- Turtle has a find function but it was ~30 times slower than find
+          -- This takes ~0.02 seconds, find takes ~0.60 on my machine
+    where dirStream = Tur.inproc
+                        "find"
+                        [Config.mailFolder, "-name", "new", "-type", "d"]
+                        Tur.empty
 
 -- | Total number of files in a 'FS.FilePath'
 getTotalFiles :: FS.FilePath -> IO Int
