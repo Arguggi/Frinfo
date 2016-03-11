@@ -1,7 +1,7 @@
 # Frinfo - Print system info to stdout
 
 [![Build Status](https://travis-ci.org/Arguggi/Frinfo.svg?branch=master)](https://travis-ci.org/Arguggi/Frinfo)
-[![licence](https://img.shields.io/badge/license-MIT-green.svg?dummy)
+[![licence](https://img.shields.io/badge/license-MIT-green.svg?dummy)](https://opensource.org/licenses/MIT)
 
 ## Build
 
