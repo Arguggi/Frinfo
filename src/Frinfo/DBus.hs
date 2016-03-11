@@ -4,6 +4,7 @@ module Frinfo.DBus where
 
 import qualified Control.Concurrent    as Conc
 import           Control.Exception
+import           Control.Monad
 import qualified Data.List             as L
 import           Data.Maybe
 import qualified Data.Text             as T
@@ -27,19 +28,15 @@ matchSpotify = DBusC.matchAny { DBusC.matchPath = Just "/org/mpris/MediaPlayer2"
 -- | Return the callback that will be used when a signal is received using the
 -- 'MVar'
 updateSong :: Conc.MVar T.Text -> DBus.Signal -> IO ()
-updateSong mvar signal = do
-    -- This is pretty ugly, fixme
-    if length (DBus.signalBody signal) < 2
-       then return ()
-       else do
-            -- Spotify should send a message in an array of 2 elements, the first element
-            -- is useless, the second one has all of the information
-            let body = (DBus.signalBody signal) !! 1
-                dict = DBus.fromVariant body
-                song = songInfo dict
-                -- Either save the new song info in the MVar or keep the old text if an
-                -- exception occurs or song == Nothing for some reason
-            Conc.modifyMVar_ mvar $ \x -> return (fromMaybe x song)
+updateSong mvar signal = unless (length (DBus.signalBody signal) < 2) $ do
+    -- Spotify should send a message in an array of 2 elements, the first element
+    -- is useless, the second one has all of the information
+    let body = (DBus.signalBody signal) !! 1
+        dict = DBus.fromVariant body
+        song = songInfo dict
+        -- Either save the new song info in the MVar or keep the old text if an
+        -- exception occurs or song == Nothing for some reason
+    Conc.modifyMVar_ mvar $ \x -> return (fromMaybe x song)
 
 -- | Maximum song info character length
 maxSongChars :: Int
