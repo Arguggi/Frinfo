@@ -1,5 +1,8 @@
 # Frinfo - Print system info to stdout
 
+[![Build Status](https://travis-ci.org/Arguggi/Frinfo.svg?branch=master)](https://travis-ci.org/Arguggi/Frinfo)
+[![licence](https://img.shields.io/badge/license-MIT-green.svg?dummy)
+
 ## Build
 
 Builing with stack is recommended:
