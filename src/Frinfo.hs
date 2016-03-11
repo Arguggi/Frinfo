@@ -47,7 +47,7 @@ helpOpts = info (helper <*> options)
     <> header "Frinfo")
 
 -- | The main function must build a new 'StaticState' that will remain unchanged
--- and will be used for the duretion of the program
+-- and will be used for the duration of the program
 main :: IO ()
 main = do
     hSetBuffering stdout LineBuffering

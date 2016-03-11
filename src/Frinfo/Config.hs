@@ -3,7 +3,6 @@
 module Frinfo.Config where
 
 import qualified Data.Text      as T
-import qualified Filesystem.Path.CurrentOS as FS
 
 type Color = T.Text
 
@@ -57,3 +56,19 @@ noEmails = " 0"
 -- | Folder where offlineimap saves all the emails
 mailFolder :: T.Text
 mailFolder = "/home/arguggi/Mail/"
+
+-- | Network interface stats file
+netStatFile :: String
+netStatFile = "/proc/net/dev"
+
+-- | Cpu activity stats file
+cpuStatFile :: String
+cpuStatFile = "/proc/stat"
+
+-- | Ram stats file
+ramStatFile :: String
+ramStatFile = "/proc/meminfo"
+
+-- | Cpu fan rpm file
+rpmStatFile :: String
+rpmStatFile = "/sys/class/hwmon/hwmon1/fan2_input"

@@ -36,7 +36,7 @@ getUnreadEmails oldState = do
         Just num -> return (unread num, oldState)
         Nothing  -> return (Config.noEmails, oldState)
     where
-        unread x = sformat ((Format.left 2 ' ') %. Format.int) x
+        unread = sformat ((Format.left 2 ' ') %. Format.int)
 
 -- | Return a new state with the interface that downloaded the most bits
 -- since the last state.
@@ -58,7 +58,7 @@ netSpeed (NetStat inter up down) = interfaceText <> downSpeed <> downIcon <> upS
 -- | Get bits sent and received for every interface from @\/proc\/net\/dev@
 getNetStat :: IO [NetStat]
 getNetStat =
-    SIO.withFile "/proc/net/dev" ReadMode $ \file -> do
+    SIO.withFile Config.netStatFile ReadMode $ \file -> do
         stat <- filterNetStats <$> TIO.hGetContents file
         return $ fmap parseNet stat
 
@@ -66,7 +66,7 @@ getNetStat =
 -- since the last state.
 getCpuAverage :: SystemState -> IO (T.Text, SystemState)
 getCpuAverage oldState =
-    SIO.withFile "/proc/stat" ReadMode $ \file -> do
+    SIO.withFile Config.cpuStatFile ReadMode $ \file -> do
         stat <- filterCpuStats <$> TIO.hGetContents file
         let oldCpuState = cpuState oldState
         case Atto.parseOnly cpuStatParser stat of
@@ -134,7 +134,7 @@ isntLo x = first /=  "lo:"
 -}
 getRam :: IO T.Text
 getRam =
-    withFile "/proc/meminfo" ReadMode $ \file -> do
+    withFile Config.ramStatFile ReadMode $ \file -> do
         memInfo <- (take 3 . T.lines) <$> TIO.hGetContents file
         let total = headDef "" $ filter ("MemTotal:" `T.isPrefixOf`) memInfo
             available = headDef "" $ filter ("MemAvailable:" `T.isPrefixOf`) memInfo
@@ -147,7 +147,7 @@ getRam =
 -- | Get the cpu fan RPM from @\/sys\/class\/hwmon\/hwmon1\/fan2_input@
 getCpuRpm :: IO T.Text
 getCpuRpm =
-    withFile "/sys/class/hwmon/hwmon1/fan2_input" ReadMode $ \file -> do
+    withFile Config.rpmStatFile ReadMode $ \file -> do
         rpm <- TIO.hGetContents file
         let rpmText = readDef 0 $ T.unpack rpm
         return $ padWithUnit rpmText 4 "RPM"
