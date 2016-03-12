@@ -2,6 +2,7 @@
 
 module Frinfo
         ( main
+        , logException
         , freeStruc
         ) where
 
@@ -48,10 +49,31 @@ helpOpts = info (helper <*> options)
     <> progDesc "Print system information to stdout"
     <> header "Frinfo")
 
--- | The main function must build a new 'StaticState' that will remain unchanged
--- and will be used for the duration of the program
+-- | Log any exceptions to 'Config.crashFile'
+logException :: Ex.SomeException -> IO ()
+logException e = do
+    putStrLn "Terminating"
+    time <- getCurrentTime
+    withFile Config.crashFile AppendMode $ \file -> do
+        let errorLine = show time <> " - " <> show e
+        hPutStrLn file errorLine
+
+-- | The loop that keeps printing the system info
+printLoop :: MyState -> IO ()
+printLoop state = do
+    (output, newState) <- S.runStateT (printDzen freeStruc) state
+    TIO.putStrLn output
+    Conc.threadDelay (secondsDelay 1)
+    printLoop newState
+
+-- | 'Ex.catch'-es all exceptions with 'Frinfo.logException'
 main :: IO ()
-main = do
+main = main' `Ex.catch` logException
+
+-- | The main' function must build a new 'StaticState' that will remain unchanged
+-- and will be used for the duration of the program
+main' :: IO ()
+main' = do
     hSetBuffering stdout LineBuffering
     flags <- execParser helpOpts
     -- remove newline
@@ -68,19 +90,7 @@ main = do
                                    , emailState = emailMVar
                                    }
         staticState' = StaticState { uname = unameIO }
-    printLoop startingState `Ex.catch` (\e -> do
-        time <- getCurrentTime
-        withFile Config.crashFile AppendMode $ (\file -> do
-            hPutStr file (show time <> " - ")
-            hPrint file (e :: Ex.SomeException)))
-
--- | The loop that keeps printing the system info
-printLoop :: MyState -> IO ()
-printLoop state = do
-    (output, newState) <- S.runStateT (printDzen freeStruc) state
-    TIO.putStrLn output
-    Conc.threadDelay (secondsDelay 1)
-    printLoop newState
+    printLoop startingState
 
 -- | Build the data structure that will then be 'interpreted'
 -- See 'Info' for the available constructors
