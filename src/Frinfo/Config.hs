@@ -72,3 +72,7 @@ ramStatFile = "/proc/meminfo"
 -- | Cpu fan rpm file
 rpmStatFile :: String
 rpmStatFile = "/sys/class/hwmon/hwmon1/fan2_input"
+
+-- | Log exceptions to this file
+crashFile :: String
+crashFile = "/home/arguggi/frinfo.log"

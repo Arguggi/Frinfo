@@ -6,11 +6,13 @@ module Frinfo
         ) where
 
 import qualified Control.Concurrent         as Conc
+import qualified Control.Exception          as Ex
 import           Control.Monad
 import           Control.Monad.Free
 import qualified Control.Monad.State.Strict as S
 import qualified Data.Text                  as T
 import qualified Data.Text.IO               as TIO
+import           Data.Time
 import qualified Frinfo.Config              as Config
 import           Frinfo.DBus
 import           Frinfo.Free
@@ -66,7 +68,11 @@ main = do
                                    , emailState = emailMVar
                                    }
         staticState' = StaticState { uname = unameIO }
-    printLoop startingState
+    printLoop startingState `Ex.catch` (\e -> do
+        time <- getCurrentTime
+        withFile Config.crashFile AppendMode $ (\file -> do
+            hPutStr file (show time <> " - ")
+            hPrint file (e :: Ex.SomeException)))
 
 -- | The loop that keeps printing the system info
 printLoop :: MyState -> IO ()
