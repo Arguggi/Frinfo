@@ -23,6 +23,7 @@ import           Frinfo.Scripts
 import           Options.Applicative
 import           Safe
 import           System.IO
+import qualified System.Posix.Signals       as Sign
 import qualified System.Process             as Process
 
 data Flags = Flags
@@ -74,6 +75,8 @@ main = main' `Ex.catch` logException
 -- and will be used for the duration of the program
 main' :: IO ()
 main' = do
+    threadId <- Conc.myThreadId
+    _ <- Sign.installHandler Sign.sigTERM (Sign.Catch (Conc.killThread threadId)) Nothing
     hSetBuffering stdout LineBuffering
     flags <- execParser helpOpts
     -- remove newline

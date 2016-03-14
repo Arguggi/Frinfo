@@ -41,6 +41,7 @@ library
                      , text
                      , time
                      , turtle
+                     , unix
   default-language:    Haskell2010
 
 executable frinfo
