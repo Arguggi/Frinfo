@@ -120,7 +120,7 @@ filterNetStats text = filter isntLo noHeader
 -- | Does the Text start with @lo:@ ?
 isntLo :: T.Text -> Bool
 isntLo x = first /=  "lo:"
-    where (first:_) = T.words x
+    where first = headDef "" $ T.words x
 
 -- | Get free and used ram from @\/proc\/meminfo@
 {-| @\/proc\/meminfo@ example:
