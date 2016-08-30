@@ -21,21 +21,19 @@ data Action = Add | Remove
 watchEmailFolder :: Conc.MVar Int -> IO ()
 watchEmailFolder mvar = bracketOnError IN.initINotify IN.killINotify $ \notify -> do
     folders <- allNewFolders
-    Prelude.mapM_ (\folder -> do
+    forM_ folders $ \folder -> do
         files <- getTotalFiles folder
-        if files > 0 then Conc.modifyMVar_ mvar $ \x -> return (x + files)
-            else return ()
+        when (files > 0) $ Conc.modifyMVar_ mvar $ \x -> return (x + files)
         IN.addWatch
             notify
             [IN.Create, IN.MoveIn, IN.Delete, IN.MoveOut]
             (toPreludeFp folder)
-            (eventLength mvar))
-        folders
+            (eventLength mvar)
 
 -- | Turtle gives back 'FS.FilePath' but 'System.INotify' uses 'Prelude.FilePath'
 -- so we have to convert between the two.
 toPreludeFp :: FS.FilePath -> Prelude.FilePath
-toPreludeFp = T.unpack . (either id id) . FS.toText
+toPreludeFp = T.unpack . either id id . FS.toText
 
 -- | Partially apply to get the callback used with 'IN.addWatch'
 eventLength :: Conc.MVar Int -> IN.Event -> IO ()
@@ -58,7 +56,7 @@ updateMVar mvar action isDir =
 
 -- | Find all the subfolders of 'mailFolder' called @new@
 allNewFolders :: IO [FS.FilePath]
-allNewFolders = Tur.fold (fmap FS.fromText dirStream) F.list
+allNewFolders = Tur.fold (FS.fromText <$> dirStream) F.list
           -- Turtle has a find function but it was ~30 times slower than find
           -- This takes ~0.02 seconds, find takes ~0.60 on my machine
     where dirStream = Tur.inproc
@@ -68,4 +66,5 @@ allNewFolders = Tur.fold (fmap FS.fromText dirStream) F.list
 
 -- | Total number of files in a 'FS.FilePath'
 getTotalFiles :: FS.FilePath -> IO Int
-getTotalFiles folder = Tur.fold (Tur.find Tur.chars folder) F.length
+--getTotalFiles folder = Tur.fold (Tur.find Tur.chars folder) F.length
+getTotalFiles folder = Tur.fold (Tur.ls folder) F.length
