@@ -66,5 +66,4 @@ allNewFolders = Tur.fold (FS.fromText <$> dirStream) F.list
 
 -- | Total number of files in a 'FS.FilePath'
 getTotalFiles :: FS.FilePath -> IO Int
---getTotalFiles folder = Tur.fold (Tur.find Tur.chars folder) F.length
 getTotalFiles folder = Tur.fold (Tur.ls folder) F.length

@@ -18,8 +18,9 @@ main = do
         fresStrucMvar = FF.defaultMyState { FF.systemState = sState { FF.dbusState = songMVar, FF.emailState = emailMVar }}
     defaultMain
         [ bgroup "frinfo"
-            [ bench "print Dzen" $ nfIO (S.evalStateT (FF.printDzen F.freeStruc) fresStrucMvar)]
+            [ bench "Print Dzen" $ nfIO (S.evalStateT (FF.printDzen F.freeStruc) fresStrucMvar)]
         , bgroup "INotify"
-            [ bench "new Folders" $ nfIO IN.allNewFolders
-            , bench "total Files" $ nfIO $ IN.getTotalFiles "/home/arguggi/Mail/arguggi@arguggi.co.uk/INBOX/new"]
+            [ bench "New Folders" $ nfIO IN.allNewFolders
+            , bench "Total Files" $ nfIO $ IN.getTotalFiles "/home/arguggi/Downloads"
+            ]
         ]
