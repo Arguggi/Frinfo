@@ -8,6 +8,7 @@ import           Data.List             (foldl', sort)
 import           Data.Monoid
 import qualified Data.Text             as T
 import qualified Data.Text.IO          as TIO
+import qualified Data.Text.Read        as Read
 import           Data.Time.Format      (defaultTimeLocale, formatTime)
 import           Data.Time.LocalTime   (getZonedTime)
 import           Formatting            (sformat, (%), (%.))
@@ -17,6 +18,17 @@ import           Frinfo.Free
 import           Frinfo.Parsers
 import           Safe
 import           System.IO             as SIO
+
+-- | Get Battery percent level
+getBatteryPerc :: IO T.Text
+getBatteryPerc =
+    SIO.withFile Config.batteryFile ReadMode $ \file -> do
+        stat <- Read.decimal <$> TIO.hGetContents file :: IO (Either String (Int, T.Text))
+        case stat of
+            Left  x -> return "0"
+            Right (y, _) -> return (formatted y <> "%")
+        where
+            formatted = sformat ((Format.left 2 ' ') %. Format.int)
 
 -- | Get name of the song that is playing
 getSong :: SystemState -> IO (T.Text, SystemState)
