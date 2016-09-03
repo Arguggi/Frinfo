@@ -3,6 +3,7 @@
 module Frinfo.Scripts where
 
 import qualified Control.Concurrent    as Conc
+import           Control.Lens
 import qualified Data.Attoparsec.Text  as Atto
 import           Data.Default
 import           Data.List             (foldl', sort)
@@ -26,16 +27,15 @@ getBatteryPerc =
     SIO.withFile Config.batteryFile ReadMode $ \file -> do
         stat <- Read.decimal <$> TIO.hGetContents file :: IO (Either String (Int, T.Text))
         case stat of
-            Left  x -> return "0"
+            Left  _ -> return "0"
             Right (y, _) -> return (formatted y <> "%")
         where
-            formatted = sformat ((Format.left 2 ' ') %. Format.int)
+            formatted = sformat (Format.left 2 ' ' %. Format.int)
 
 -- | Get name of the song that is playing
 getSong :: SystemState -> IO (T.Text, SystemState)
 getSong oldState = do
-    let mvar = _dbusState oldState
-    songInfo <- Conc.tryReadMVar mvar
+    songInfo <- Conc.tryReadMVar (oldState ^. dbusState)
     case songInfo of
         Just song -> return (song, oldState)
         Nothing   -> return (Config.noSongPlaying, oldState)
@@ -43,22 +43,23 @@ getSong oldState = do
 -- | Get total unread emails
 getUnreadEmails :: SystemState -> IO (T.Text, SystemState)
 getUnreadEmails oldState = do
-    let mvar = _emailState oldState
-    unreadEmails <- Conc.tryReadMVar mvar
+    unreadEmails <- Conc.tryReadMVar (oldState ^. emailState)
     case unreadEmails of
         Just num -> return (unread num, oldState)
         Nothing  -> return (Config.noEmails, oldState)
     where
-        unread = sformat ((Format.left 2 ' ') %. Format.int)
+        unread = sformat (Format.left 2 ' ' %. Format.int)
 
 -- | Return a new state with the interface that downloaded the most bits
 -- since the last state.
 getNetAverage :: SystemState -> IO (T.Text, SystemState)
 getNetAverage oldState = do
-    let oldNetState = _netState oldState
     newState <- getNetStat
-    return (netSpeed . headDef def . sort $ zipWith netAverage oldNetState newState,
-            oldState { _netState = newState })
+    return (netSpeed . headDef def . sort $ newAverages newState
+           , oldState & netState .~ newState )
+    where
+        oldNetState = oldState ^. netState
+        newAverages = zipWith netAverage oldNetState
 
 -- | Pretty print an Interface name and traffic
 netSpeed :: NetStat -> T.Text
@@ -81,7 +82,7 @@ getCpuAverage :: SystemState -> IO (T.Text, SystemState)
 getCpuAverage oldState =
     SIO.withFile Config.cpuStatFile ReadMode $ \file -> do
         stat <- filterCpuStats <$> TIO.hGetContents file
-        let oldCpuState = _cpuState oldState
+        let oldCpuState = oldState ^. cpuState
         case Atto.parseOnly cpuStatParser stat of
             (Left _) -> return ("", oldState)
             (Right newState) -> return (padCpu $ zipWith cpuAverage oldCpuState newState,
@@ -204,7 +205,7 @@ netAverage (NetStat _ up1 down1) (NetStat interface2 up2 down2) =
 
 -- | Read an Integer defaulting to 0 on error
 textToInteger :: T.Text -> Integer
-textToInteger = (readDef 0) . T.unpack
+textToInteger = readDef 0 . T.unpack
 
 -- | Safe 'quot' that returns 0 if the denominator is 0
 quot' :: Integer -> Integer -> Integer
