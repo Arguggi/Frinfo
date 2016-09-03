@@ -4,14 +4,15 @@ module Frinfo.Scripts where
 
 import qualified Control.Concurrent as Conc
 import qualified Data.Attoparsec.Text as Atto
+import Data.Default
 import Data.List (foldl', sort)
 import Data.Monoid
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
+import qualified Data.Text.Read as Read
 import Data.Time.Format (defaultTimeLocale, formatTime)
 import Data.Time.LocalTime (getZonedTime)
 import Formatting (sformat, (%), (%.))
-import qualified Data.Text.Read as Read
 import qualified Formatting.Formatters as Format
 import qualified Frinfo.Config as Config
 import Frinfo.Free
@@ -33,7 +34,7 @@ getBatteryPerc =
 -- | Get name of the song that is playing
 getSong :: SystemState -> IO (T.Text, SystemState)
 getSong oldState = do
-    let mvar = dbusState oldState
+    let mvar = _dbusState oldState
     songInfo <- Conc.tryReadMVar mvar
     case songInfo of
         Just song -> return (song, oldState)
@@ -42,7 +43,7 @@ getSong oldState = do
 -- | Get total unread emails
 getUnreadEmails :: SystemState -> IO (T.Text, SystemState)
 getUnreadEmails oldState = do
-    let mvar = emailState oldState
+    let mvar = _emailState oldState
     unreadEmails <- Conc.tryReadMVar mvar
     case unreadEmails of
         Just num -> return (unread num, oldState)
@@ -54,14 +55,10 @@ getUnreadEmails oldState = do
 -- since the last state.
 getNetAverage :: SystemState -> IO (T.Text, SystemState)
 getNetAverage oldState = do
-    let oldNetState = netState oldState
+    let oldNetState = _netState oldState
     newState <- getNetStat
-    return
-        ( netSpeed . headDef defaultNetStat . sort $
-          zipWith netAverage oldNetState newState
-        , oldState
-          { netState = newState
-          })
+    return (netSpeed . headDef def . sort $ zipWith netAverage oldNetState newState,
+            oldState { _netState = newState })
 
 -- | Pretty print an Interface name and traffic
 netSpeed :: NetStat -> T.Text
@@ -87,16 +84,11 @@ getCpuAverage oldState =
     SIO.withFile Config.cpuStatFile ReadMode $
     \file -> do
         stat <- filterCpuStats <$> TIO.hGetContents file
-        let oldCpuState = cpuState oldState
+        let oldCpuState = _cpuState oldState
         case Atto.parseOnly cpuStatParser stat of
             (Left _) -> return ("", oldState)
-            (Right newState) ->
-                return
-                    ( padCpu $ zipWith cpuAverage oldCpuState newState
-                    , oldState
-                      { cpuState = newState
-                      })
-
+            (Right newState) -> return (padCpu $ zipWith cpuAverage oldCpuState newState,
+                                        oldState {_cpuState = newState})
 -- | Parse a @\/proc\/net\/dev@ line
 parseNet :: T.Text -> NetStat
 parseNet x = getTotal $ T.words x
@@ -105,7 +97,7 @@ parseNet x = getTotal $ T.words x
 getTotal :: [T.Text] -> NetStat
 getTotal (interfaceName:downTotalT:_:_:_:_:_:_:_:upTotalT:_) =
     NetStat interfaceName (textToInteger upTotalT) (textToInteger downTotalT)
-getTotal _ = defaultNetStat
+getTotal _ = def
 
 -- | Get the time in the local time zone
 getTime :: IO T.Text
