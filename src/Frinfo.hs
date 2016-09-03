@@ -11,6 +11,7 @@ import qualified Control.Exception          as Ex
 import           Control.Monad
 import           Control.Monad.Free
 import qualified Control.Monad.State.Strict as S
+import           Data.Default
 import qualified Data.Text                  as T
 import qualified Data.Text.IO               as TIO
 import           Data.Time
@@ -87,12 +88,10 @@ main' = do
     when (spotify flags) (void . Conc.forkIO $ connectToDbus songMVar)
     when (inotify flags) (void . Conc.forkIO $ watchEmailFolder emailMVar)
     let startingState = MyState dynamicState staticState'
-        dynamicState = SystemState { cpuState = [defaultCpuStat]
-                                   , netState = [defaultNetStat]
-                                   , dbusState = songMVar
-                                   , emailState = emailMVar
-                                   }
-        staticState' = StaticState { uname = unameIO }
+        dynamicState = def { _dbusState = songMVar
+                           , _emailState = emailMVar
+                           }
+        staticState' = StaticState { _uname = unameIO }
     printLoop startingState
 
 -- | Build the data structure that will then be 'interpreted'
@@ -114,7 +113,7 @@ freeStruc = do
     --script getCpuRpm
     separator
     icon Config.unameColor Config.unameIcon
-    static uname
+    static _uname
     separator
     script getUptime
     separator

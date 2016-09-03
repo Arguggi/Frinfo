@@ -27,6 +27,8 @@ library
                      , async
                      , attoparsec
                      , containers
+                     , data-default
+                     , dbus
                      , dbus
                      , foldl
                      , formatting
@@ -34,6 +36,7 @@ library
                      , hinotify
                      , libmpd
                      , mtl
+                     , lens
                      , optparse-applicative
                      , process
                      , safe

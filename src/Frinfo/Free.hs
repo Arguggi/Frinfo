@@ -1,14 +1,20 @@
 {-# LANGUAGE DeriveFunctor     #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell   #-}
 
 module Frinfo.Free where
 
 import qualified Control.Concurrent         as Conc
+import           Control.Lens
 import           Control.Monad.Free
 import qualified Control.Monad.State.Strict as S
+import           Data.Default
 import           Data.Monoid
 import qualified Data.Text                  as T
 import qualified Frinfo.Config              as Config
+
+type Path = T.Text
+
 data Info next =
       Separator next
       -- ^ Add a simple separator, defined as 'sep'
@@ -25,52 +31,55 @@ data Info next =
 
 -- | Cpu data taken from @\/proc\/stat@
 data CpuStat = CpuStat
-    { user   :: Integer
+    { _user   :: Integer
     -- ^User stats
-    , system :: Integer
+    , _system :: Integer
     -- ^System stats
-    , idle   :: Integer
+    , _idle   :: Integer
     -- ^Idle stats
     } deriving (Show)
 
 -- | Interface data taken from @\/proc\/net\/dev@
 data NetStat = NetStat
-    { interface :: T.Text
+    { _interface :: T.Text
     -- ^ Inteface name (e.g. enp5s0)
-    , downTotal :: Integer
+    , _downTotal :: Integer
     -- ^ Total bits downloaded
-    , upTotal   :: Integer
+    , _upTotal   :: Integer
     -- ^ Total bits uploaded
     } deriving (Show)
 
 -- | Dynamic state that will be used with the 'ScriptState' constructor
 data SystemState = SystemState
-    { cpuState   :: [CpuStat]
+    { _cpuState   :: [CpuStat]
     -- ^ List of all 'CpuStat', one for each core and one for the total average
-    , netState   :: [NetStat]
+    , _netState   :: [NetStat]
     -- ^ List of all 'NetStat', one for each interface
-    , dbusState  :: Conc.MVar T.Text
+    , _dbusState  :: Conc.MVar T.Text
     -- ^ Currently playing song
-    , emailState :: Conc.MVar Int
+    , _emailState :: Conc.MVar Int
     -- ^ Number of unread emails
     }
 
 -- | Static state that must be set at startup in 'main'
 data StaticState = StaticState
-    { uname :: T.Text
+    { _uname :: T.Text
     -- ^ Output of @uname -r@
     } deriving (Show)
 
 -- | State of the script
 data MyState = MyState
-    { systemState :: SystemState
+    { _systemState :: SystemState
     -- ^ Dynamic state that will be updated
-    , staticState :: StaticState
+    , _staticState :: StaticState
     -- ^ Static state that should be set once at the start of the program
     }
 
--- | Filesystem path
-type Path = T.Text
+makeLenses ''MyState
+makeLenses ''StaticState
+makeLenses ''SystemState
+makeLenses ''NetStat
+
 
 -- | Specialized 'S.StateT' with 'MyState' and 'T.Text'
 type StateM = S.StateT MyState IO T.Text
@@ -81,27 +90,28 @@ instance Ord NetStat where
 instance Eq NetStat where
     (NetStat _ d1 _) ==  (NetStat _ d2 _) = d1 == d2
 
+instance Default CpuStat where
+    def = CpuStat 0 0 0
 
--- | Default script state
-defaultMyState :: MyState
---defaultMyState = MyState (SystemState [defaultCpuStat] [defaultNetStat] Conc.newEmptyMVar) (StaticState "uname")
-defaultMyState = MyState (SystemState [defaultCpuStat] [defaultNetStat] undefined undefined) (StaticState "uname")
+instance Default NetStat where
+    def = NetStat "Empty" 0 0
 
--- | Default Cpu stat
-defaultCpuStat :: CpuStat
-defaultCpuStat = CpuStat 0 0 0
+instance Default StaticState where
+    def = StaticState "uname"
 
--- | Default Network stat
-defaultNetStat :: NetStat
-defaultNetStat = NetStat "Empty" 0 0
+instance Default SystemState where
+    def = SystemState [def] [def] undefined undefined
+
+instance Default MyState where
+    def = MyState def def
 
 -- | The 'ScriptState' constructor takes a ('SystemState' -> 'IO' ('T.Text', 'SystemState')
 -- function but we need a function that takes and returns a 'MyState'
 liftSystemScript :: (SystemState -> IO (T.Text, SystemState)) -> StateM
 liftSystemScript systemScript = do
     state <- S.get
-    (output, newS) <- S.liftIO $ systemScript (systemState state)
-    S.put (MyState newS (staticState state))
+    (output, newS) <- S.liftIO $ systemScript (_systemState state)
+    S.put (MyState newS (_staticState state))
     return output
 
 -- | Separator that is used when the 'Separator' constructor is used
@@ -145,7 +155,7 @@ printDzen (Free (Icon color path next)) = do
     return $ wrappedIcon <> rest
 printDzen (Free (Static getStatic next)) = do
     rest <- printDzen next
-    staticText <- S.gets (getStatic . staticState)
+    staticText <- S.gets (getStatic . _staticState)
     return $ staticText <> rest
 printDzen (Free (Script ioScript next)) = do
     output <- S.liftIO ioScript
@@ -156,7 +166,6 @@ printDzen (Free (ScriptState ioScript next)) = do
     rest <- printDzen next
     return $ output <> rest
 printDzen (Pure _) =  return ""
-
 
 -- Utility wrappers
 -- | Wrap some text in a color
