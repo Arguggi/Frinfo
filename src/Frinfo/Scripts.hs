@@ -36,7 +36,7 @@ getUnreadEmails oldState = do
         Just num -> return (unread num, oldState)
         Nothing  -> return (Config.noEmails, oldState)
     where
-        unread = sformat ((Format.left 2 ' ') %. Format.int)
+        unread = sformat (Format.left 2 ' ' %. Format.int)
 
 -- | Return a new state with the interface that downloaded the most bits
 -- since the last state.
@@ -191,7 +191,7 @@ netAverage (NetStat _ up1 down1) (NetStat interface2 up2 down2) =
 
 -- | Read an Integer defaulting to 0 on error
 textToInteger :: T.Text -> Integer
-textToInteger = (readDef 0) . T.unpack
+textToInteger = readDef 0 . T.unpack
 
 -- | Safe 'quot' that returns 0 if the denominator is 0
 quot' :: Integer -> Integer -> Integer

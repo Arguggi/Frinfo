@@ -15,14 +15,14 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Frinfo
-                     , Frinfo.Config
+  exposed-modules:     Frinfo.Config
                      , Frinfo.DBus
                      , Frinfo.Free
                      , Frinfo.MPD
                      , Frinfo.INotify
                      , Frinfo.Parsers
                      , Frinfo.Scripts
+                     , Frinfo.Structure
   build-depends:       base >= 4.7 && < 5
                      , async
                      , attoparsec
@@ -34,8 +34,6 @@ library
                      , hinotify
                      , libmpd
                      , mtl
-                     , optparse-applicative
-                     , process
                      , safe
                      , system-filepath
                      , text
@@ -43,13 +41,23 @@ library
                      , turtle
                      , unix
   default-language:    Haskell2010
+  ghc-options:         -Wall -O
 
 executable frinfo
   hs-source-dirs:      app
   main-is:             Main.hs
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -O
   build-depends:       base
+                     , free
                      , frinfo
+                     , mtl
+                     , optparse-applicative
+                     , optparse-applicative
+                     , process
+                     , safe
+                     , slave-thread
+                     , text
+                     , time
   default-language:    Haskell2010
 
 test-suite frinfo-test
@@ -58,7 +66,7 @@ test-suite frinfo-test
   main-is:             Spec.hs
   build-depends:       base
                      , frinfo
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -O
   default-language:    Haskell2010
 
 benchmark frinfo-benchmark
@@ -70,7 +78,7 @@ benchmark frinfo-benchmark
                      , frinfo
                      , mtl
                      , text
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -O
   default-language:    Haskell2010
 
 

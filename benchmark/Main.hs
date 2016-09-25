@@ -5,7 +5,7 @@ module Main (main) where
 import qualified Control.Concurrent         as Conc
 import Criterion (bench, bgroup)
 import Criterion.Main (defaultMain, nfIO)
-import qualified Frinfo                     as F
+import qualified Frinfo.Structure           as F
 import qualified Frinfo.Free                as FF
 import qualified Frinfo.INotify             as IN
 import qualified Control.Monad.State.Strict as S
