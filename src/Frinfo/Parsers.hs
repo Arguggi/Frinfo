@@ -2,8 +2,8 @@
 
 module Frinfo.Parsers where
 
-import           Data.Attoparsec.Text
-import           Frinfo.Free
+import Data.Attoparsec.Text
+import Frinfo.Free
 
 -- | Parse all cpu stat lines from @\/proc\/stat@
 cpuStatParser :: Parser [CpuStat]

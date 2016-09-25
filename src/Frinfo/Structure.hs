@@ -1,9 +1,9 @@
 module Frinfo.Structure where
 
-import           Control.Monad.Free
-import qualified Frinfo.Config              as Config
-import Frinfo.Scripts
+import Control.Monad.Free
+import qualified Frinfo.Config as Config
 import Frinfo.Free
+import Frinfo.Scripts
 
 -- | Build the data structure that will then be 'interpreted'
 -- See 'Info' for the available constructors

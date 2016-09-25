@@ -2,21 +2,21 @@
 
 module Frinfo.Scripts where
 
-import qualified Control.Concurrent    as Conc
-import qualified Data.Attoparsec.Text  as Atto
-import           Data.List             (foldl', sort)
-import           Data.Monoid
-import qualified Data.Text             as T
-import qualified Data.Text.IO          as TIO
-import           Data.Time.Format      (defaultTimeLocale, formatTime)
-import           Data.Time.LocalTime   (getZonedTime)
-import           Formatting            (sformat, (%), (%.))
+import qualified Control.Concurrent as Conc
+import qualified Data.Attoparsec.Text as Atto
+import Data.List (foldl', sort)
+import Data.Monoid
+import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
+import Data.Time.Format (defaultTimeLocale, formatTime)
+import Data.Time.LocalTime (getZonedTime)
+import Formatting (sformat, (%), (%.))
 import qualified Formatting.Formatters as Format
-import qualified Frinfo.Config         as Config
-import           Frinfo.Free
-import           Frinfo.Parsers
-import           Safe
-import           System.IO             as SIO
+import qualified Frinfo.Config as Config
+import Frinfo.Free
+import Frinfo.Parsers
+import Safe
+import System.IO as SIO
 
 -- | Get name of the song that is playing
 getSong :: SystemState -> IO (T.Text, SystemState)
@@ -25,7 +25,7 @@ getSong oldState = do
     songInfo <- Conc.tryReadMVar mvar
     case songInfo of
         Just song -> return (song, oldState)
-        Nothing   -> return (Config.noSongPlaying, oldState)
+        Nothing -> return (Config.noSongPlaying, oldState)
 
 -- | Get total unread emails
 getUnreadEmails :: SystemState -> IO (T.Text, SystemState)
@@ -34,9 +34,9 @@ getUnreadEmails oldState = do
     unreadEmails <- Conc.tryReadMVar mvar
     case unreadEmails of
         Just num -> return (unread num, oldState)
-        Nothing  -> return (Config.noEmails, oldState)
-    where
-        unread = sformat (Format.left 2 ' ' %. Format.int)
+        Nothing -> return (Config.noEmails, oldState)
+  where
+    unread = sformat (Format.left 2 ' ' %. Format.int)
 
 -- | Return a new state with the interface that downloaded the most bits
 -- since the last state.
@@ -44,21 +44,27 @@ getNetAverage :: SystemState -> IO (T.Text, SystemState)
 getNetAverage oldState = do
     let oldNetState = netState oldState
     newState <- getNetStat
-    return (netSpeed . headDef defaultNetStat . sort $ zipWith netAverage oldNetState newState,
-            oldState { netState = newState })
+    return
+        ( netSpeed . headDef defaultNetStat . sort $
+          zipWith netAverage oldNetState newState
+        , oldState
+          { netState = newState
+          })
 
 -- | Pretty print an Interface name and traffic
 netSpeed :: NetStat -> T.Text
 netSpeed (NetStat inter up down) = interfaceText <> downSpeed <> downIcon <> upSpeed
-    where interfaceText = padText inter 10
-          downSpeed = padWithUnit down 5 "KB/s"
-          upSpeed = padWithUnit up 5 "KB/s"
-          downIcon = wrapColor Config.upColor (wrapIcon Config.downSpeedIcon)
+  where
+    interfaceText = padText inter 10
+    downSpeed = padWithUnit down 5 "KB/s"
+    upSpeed = padWithUnit up 5 "KB/s"
+    downIcon = wrapColor Config.upColor (wrapIcon Config.downSpeedIcon)
 
 -- | Get bits sent and received for every interface from @\/proc\/net\/dev@
 getNetStat :: IO [NetStat]
 getNetStat =
-    SIO.withFile Config.netStatFile ReadMode $ \file -> do
+    SIO.withFile Config.netStatFile ReadMode $
+    \file -> do
         stat <- filterNetStats <$> TIO.hGetContents file
         return $ fmap parseNet stat
 
@@ -66,13 +72,19 @@ getNetStat =
 -- since the last state.
 getCpuAverage :: SystemState -> IO (T.Text, SystemState)
 getCpuAverage oldState =
-    SIO.withFile Config.cpuStatFile ReadMode $ \file -> do
+    SIO.withFile Config.cpuStatFile ReadMode $
+    \file -> do
         stat <- filterCpuStats <$> TIO.hGetContents file
         let oldCpuState = cpuState oldState
         case Atto.parseOnly cpuStatParser stat of
             (Left _) -> return ("", oldState)
-            (Right newState) -> return (padCpu $ zipWith cpuAverage oldCpuState newState,
-                                        oldState {cpuState = newState})
+            (Right newState) ->
+                return
+                    ( padCpu $ zipWith cpuAverage oldCpuState newState
+                    , oldState
+                      { cpuState = newState
+                      })
+
 -- | Parse a @\/proc\/net\/dev@ line
 parseNet :: T.Text -> NetStat
 parseNet x = getTotal $ T.words x
@@ -92,7 +104,8 @@ getTime = do
 -- | Pretty print the total uptime from @\/proc\/uptime@
 getUptime :: IO T.Text
 getUptime =
-    SIO.withFile "/proc/uptime" ReadMode $ \file -> do
+    SIO.withFile "/proc/uptime" ReadMode $
+    \file -> do
         uptime <- TIO.hGetContents file
         case Atto.parseOnly uptimeParser uptime of
             (Left _) -> return ""
@@ -115,12 +128,14 @@ filterCpuStats = T.unlines . filter ("cpu" `T.isPrefixOf`) . T.lines
 -}
 filterNetStats :: T.Text -> [T.Text]
 filterNetStats text = filter isntLo noHeader
-    where noHeader = drop 2 $ T.lines text
+  where
+    noHeader = drop 2 $ T.lines text
 
 -- | Does the Text start with @lo:@ ?
 isntLo :: T.Text -> Bool
-isntLo x = first /=  "lo:"
-    where first = headDef "" $ T.words x
+isntLo x = first /= "lo:"
+  where
+    first = headDef "" $ T.words x
 
 -- | Get free and used ram from @\/proc\/meminfo@
 {-| @\/proc\/meminfo@ example:
@@ -134,7 +149,8 @@ isntLo x = first /=  "lo:"
 -}
 getRam :: IO T.Text
 getRam =
-    withFile Config.ramStatFile ReadMode $ \file -> do
+    withFile Config.ramStatFile ReadMode $
+    \file -> do
         memInfo <- (take 3 . T.lines) <$> TIO.hGetContents file
         let total = headDef "" $ filter ("MemTotal:" `T.isPrefixOf`) memInfo
             available = headDef "" $ filter ("MemAvailable:" `T.isPrefixOf`) memInfo
@@ -143,11 +159,11 @@ getRam =
             freeGb = totalGb - availableGb
         return $ padWithUnit freeGb 4 "M" <> "/ " <> padWithUnit totalGb 4 "M"
 
-
 -- | Get the cpu fan RPM from @\/sys\/class\/hwmon\/hwmon1\/fan2_input@
 getCpuRpm :: IO T.Text
 getCpuRpm =
-    withFile Config.rpmStatFile ReadMode $ \file -> do
+    withFile Config.rpmStatFile ReadMode $
+    \file -> do
         rpm <- TIO.hGetContents file
         let rpmText = readDef 0 $ T.unpack rpm
         return $ padWithUnit rpmText 4 "RPM"
@@ -164,17 +180,22 @@ totalMemKb _ = 0
 -- | Pretty print seconds to @$DAYd $HOURh $MINm $SECs@, every number is padded so it's
 -- wide 2 characters
 toUptimeText :: Integer -> T.Text
-toUptimeText totalSecs = padTime days "d" <> padTime hours "h" <> padTime minutes "m" <> padTime seconds "s"
-    where (days, remDays) = quotRem totalSecs secDay
-          (hours, remHours) = quotRem remDays secHour
-          (minutes, seconds) = quotRem remHours secMinute
+toUptimeText totalSecs =
+    padTime days "d" <> padTime hours "h" <> padTime minutes "m" <>
+    padTime seconds "s"
+  where
+    (days, remDays) = quotRem totalSecs secDay
+    (hours, remHours) = quotRem remDays secHour
+    (minutes, seconds) = quotRem remHours secMinute
 
 -- | Seconds in a day
 secDay :: Integer
 secDay = 24 * secHour
+
 -- | Seconds in an hour
 secHour :: Integer
 secHour = 60 * secMinute
+
 -- | Seconds in a minute
 secMinute :: Integer
 secMinute = 60
@@ -182,7 +203,9 @@ secMinute = 60
 -- | Average 2 cpu stats
 cpuAverage :: CpuStat -> CpuStat -> Integer
 cpuAverage (CpuStat user1 system1 idle1) (CpuStat user2 system2 idle2) =
-    quot' ((user2 + system2 - user1 - system1) * 100) (user2 + system2 + idle2 - user1 - system1 - idle1)
+    quot'
+        ((user2 + system2 - user1 - system1) * 100)
+        (user2 + system2 + idle2 - user1 - system1 - idle1)
 
 -- | Average 2 net stats. Return data in Kilobits
 netAverage :: NetStat -> NetStat -> NetStat
@@ -199,18 +222,17 @@ quot' _ 0 = 0
 quot' a b = quot a b
 
 -- | Pad 'T.Text' to width with spaces
-padText
-    :: T.Text
-    -> Int
-    -> T.Text
+padText :: T.Text -> Int -> T.Text
 padText text width = sformat (Format.left width ' ' %. Format.stext) text
 
 -- | Pad Integer to width and append a Unit separated by a space
-padWithUnit :: Integer  -- ^ Number to pad
-            -> Int      -- ^ Min width
-            -> T.Text   -- ^ Unit
-            -> T.Text   -- ^ Final 'T.Text'
-padWithUnit x width = sformat ((Format.left width ' ' %. Format.int) % Format.stext % " ") x
+padWithUnit
+    :: Integer -- ^ Number to pad
+    -> Int -- ^ Min width
+    -> T.Text -- ^ Unit
+    -> T.Text -- ^ Final 'T.Text'
+padWithUnit x width =
+    sformat ((Format.left width ' ' %. Format.int) % Format.stext % " ") x
 
 -- | Pad the time units so they are always wide 2 charaters
 padTime :: Integer -> T.Text -> T.Text
@@ -219,4 +241,5 @@ padTime x = padWithUnit x 2
 -- | Pad the cpu % so they are always wide 3 characters and concat them
 padCpu :: [Integer] -> T.Text
 padCpu xs = foldl' (<>) "" padded
-    where padded = map (\x -> padWithUnit x 3 "%") xs
+  where
+    padded = map (\x -> padWithUnit x 3 "%") xs

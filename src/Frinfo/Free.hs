@@ -1,72 +1,78 @@
-{-# LANGUAGE DeriveFunctor     #-}
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Frinfo.Free where
 
-import qualified Control.Concurrent         as Conc
-import           Control.Monad.Free
+import qualified Control.Concurrent as Conc
+import Control.Monad.Free
 import qualified Control.Monad.State.Strict as S
-import           Data.Monoid
-import qualified Data.Text                  as T
-import qualified Frinfo.Config              as Config
-data Info next =
-      Separator next
+import Data.Monoid
+import qualified Data.Text as T
+import qualified Frinfo.Config as Config
+
+data Info next
+    = Separator next
       -- ^ Add a simple separator, defined as 'sep'
-    | Icon Config.Color Path next
+    | Icon Config.Color
+           Path
+           next
       -- ^ Add an icon, with a 'Color' and 'Path'
-    | Static (StaticState -> T.Text) next
+    | Static (StaticState -> T.Text)
+             next
       -- ^ Add some fixed text. You have to specify the function
       -- used to extract the 'T.Text' from the 'StaticState' data
-    | Script (IO T.Text) next
+    | Script (IO T.Text)
+             next
       -- ^ Add some 'IO T.text'.
-    | ScriptState (SystemState -> IO (T.Text, SystemState)) next
+    | ScriptState (SystemState -> IO (T.Text, SystemState))
+                  next
       -- ^ Add some 'IO Text' that also needs access to the previous 'SystemState'
     deriving (Functor)
 
 -- | Cpu data taken from @\/proc\/stat@
 data CpuStat = CpuStat
-    { user   :: Integer
-    -- ^User stats
+    { user :: Integer
+      -- ^User stats
     , system :: Integer
-    -- ^System stats
-    , idle   :: Integer
-    -- ^Idle stats
+      -- ^System stats
+    , idle :: Integer
+      -- ^Idle stats
     } deriving (Show)
 
 -- | Interface data taken from @\/proc\/net\/dev@
 data NetStat = NetStat
     { interface :: T.Text
-    -- ^ Inteface name (e.g. enp5s0)
+      -- ^ Inteface name (e.g. enp5s0)
     , downTotal :: Integer
-    -- ^ Total bits downloaded
-    , upTotal   :: Integer
-    -- ^ Total bits uploaded
+      -- ^ Total bits downloaded
+    , upTotal :: Integer
+      -- ^ Total bits uploaded
     } deriving (Show)
 
 -- | Dynamic state that will be used with the 'ScriptState' constructor
 data SystemState = SystemState
-    { cpuState   :: [CpuStat]
-    -- ^ List of all 'CpuStat', one for each core and one for the total average
-    , netState   :: [NetStat]
-    -- ^ List of all 'NetStat', one for each interface
-    , dbusState  :: Conc.MVar T.Text
-    -- ^ Currently playing song
+    { cpuState :: [CpuStat]
+      -- ^ List of all 'CpuStat', one for each core and one for the total average
+    , netState :: [NetStat]
+      -- ^ List of all 'NetStat', one for each interface
+    , dbusState :: Conc.MVar T.Text
+      -- ^ Currently playing song
     , emailState :: Conc.MVar Int
-    -- ^ Number of unread emails
+      -- ^ Number of unread emails
     }
 
 -- | Static state that must be set at startup in 'main'
 data StaticState = StaticState
     { uname :: T.Text
-    -- ^ Output of @uname -r@
+      -- ^ Output of @uname -r@
     } deriving (Show)
 
 -- | State of the script
 data MyState = MyState
     { systemState :: SystemState
-    -- ^ Dynamic state that will be updated
+      -- ^ Dynamic state that will be updated
     , staticState :: StaticState
-    -- ^ Static state that should be set once at the start of the program
+      -- ^ Static state that should be set once at the start of the program
     }
 
 -- | Filesystem path
@@ -79,13 +85,15 @@ instance Ord NetStat where
     compare (NetStat _ d1 _) (NetStat _ d2 _) = compare d2 d1
 
 instance Eq NetStat where
-    (NetStat _ d1 _) ==  (NetStat _ d2 _) = d1 == d2
-
+    (NetStat _ d1 _) == (NetStat _ d2 _) = d1 == d2
 
 -- | Default script state
 defaultMyState :: MyState
 --defaultMyState = MyState (SystemState [defaultCpuStat] [defaultNetStat] Conc.newEmptyMVar) (StaticState "uname")
-defaultMyState = MyState (SystemState [defaultCpuStat] [defaultNetStat] undefined undefined) (StaticState "uname")
+defaultMyState =
+    MyState
+        (SystemState [defaultCpuStat] [defaultNetStat] undefined undefined)
+        (StaticState "uname")
 
 -- | Default Cpu stat
 defaultCpuStat :: CpuStat
@@ -115,7 +123,7 @@ separator = liftF (Separator ())
 
 -- | Lift 'Icon'
 icon :: Config.Color -> Path -> Free Info ()
-icon color path  = liftF (Icon color path ())
+icon color path = liftF (Icon color path ())
 
 -- | Lift 'Static'
 static :: (StaticState -> T.Text) -> Free Info ()
@@ -155,8 +163,7 @@ printDzen (Free (ScriptState ioScript next)) = do
     output <- liftSystemScript ioScript
     rest <- printDzen next
     return $ output <> rest
-printDzen (Pure _) =  return ""
-
+printDzen (Pure _) = return ""
 
 -- Utility wrappers
 -- | Wrap some text in a color

@@ -2,23 +2,25 @@
 
 module Frinfo.MPD where
 
-import qualified Control.Concurrent    as Conc
-import           Data.Map              as Map
-import qualified Data.Text             as T
-import           Formatting            (sformat, (%))
+import qualified Control.Concurrent as Conc
+import Data.Map as Map
+import qualified Data.Text as T
+import Formatting (sformat, (%))
 import qualified Formatting.Formatters as Format
-import qualified Network.MPD           as MPD
+import qualified Network.MPD as MPD
 
 -- | Setup the 'Conc.MVar' by first checking if MPD is running and then calls
 -- 'startMPDLoop'
 connectToMPD :: Conc.MVar T.Text -> IO ()
-connectToMPD mvar = do
-    -- Get the playing song when we first start
+connectToMPD mvar
+             -- Get the playing song when we first start
+ = do
     songResponse <- MPD.withMPD MPD.currentSong
-    case songResponse of
-        -- If we are unable to get the song name
-        -- we don't have to update the 'Conc.MVar'
-        (Left _ ) -> startMPDLoop mvar Nothing
+    case songResponse
+         -- If we are unable to get the song name
+         -- we don't have to update the 'Conc.MVar'
+          of
+        (Left _) -> startMPDLoop mvar Nothing
         (Right song) -> do
             let songInfo = getSongInfo song
             startMPDLoop mvar songInfo
@@ -32,11 +34,13 @@ startMPDLoop mvar text = do
 -- | IDLE for a 'MPD.PlayerS' update and then update the 'Conc.MVar'
 loop :: Conc.MVar T.Text -> IO ()
 loop mvar = do
-    songResponse <- MPD.withMPD $ do
-        _ <- MPD.idle [MPD.PlayerS]
-        MPD.currentSong
-    case songResponse of
-        -- If we can't connect to MPD wait for some time before trying again
+    songResponse <-
+        MPD.withMPD $
+        do _ <- MPD.idle [MPD.PlayerS]
+           MPD.currentSong
+    case songResponse
+         -- If we can't connect to MPD wait for some time before trying again
+          of
         (Left _) -> Conc.threadDelay 1000000 >> loop mvar
         (Right response) -> do
             let songInfo = getSongInfo response
@@ -55,5 +59,5 @@ getSongInfo info = do
     let tags = MPD.sgTags song
     -- 'MPD.sgTags' is of type 'Map.Map' 'MPD.Metadata' ['MPD.Value']
     songArtist <- MPD.toText . head <$> Map.lookup MPD.Artist tags
-    songTitle <- MPD.toText . head  <$> Map.lookup MPD.Title tags
+    songTitle <- MPD.toText . head <$> Map.lookup MPD.Title tags
     return $ sformat (Format.stext % " - " % Format.stext) songArtist songTitle

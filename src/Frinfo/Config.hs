@@ -2,7 +2,7 @@
 
 module Frinfo.Config where
 
-import qualified Data.Text      as T
+import qualified Data.Text as T
 
 type Color = T.Text
 
