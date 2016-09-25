@@ -48,6 +48,7 @@ executable frinfo
   main-is:             Main.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -O
   build-depends:       base
+                     , async
                      , free
                      , frinfo
                      , mtl

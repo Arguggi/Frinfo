@@ -49,7 +49,8 @@ loop mvar = do
 
 -- | If the 'T.Text' is 'Nothing' we don't have to update the 'Conc.Mvar'
 updateSong :: Conc.MVar T.Text -> Maybe T.Text -> IO ()
-updateSong _ Nothing = return ()
+updateSong mvar Nothing =
+    Conc.modifyMVar_ mvar $ \_ -> return "Song with invalid metadata"
 updateSong mvar (Just text) = Conc.modifyMVar_ mvar $ \_ -> return text
 
 -- | Get the song info from the MPD response

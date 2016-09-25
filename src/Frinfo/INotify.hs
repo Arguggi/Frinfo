@@ -64,11 +64,11 @@ updateMVar mvar action isDir =
 -- | Find all the subfolders of 'mailFolder' called @new@
 allNewFolders :: IO [FS.FilePath]
 allNewFolders = Tur.fold (FS.fromText <$> dirStream) F.list
--- Turtle has a find function but it was ~30 times slower than find
--- This takes ~0.02 seconds, find takes ~0.60 on my machine
   where
     dirStream =
         Tur.inproc
+        -- Turtle has a find function but it was ~30 times slower than find
+        -- This takes ~0.02 seconds, find takes ~0.60 on my machine
             "find"
             [Config.mailFolder, "-name", "new", "-type", "d"]
             Tur.empty

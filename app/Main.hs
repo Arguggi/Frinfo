@@ -1,28 +1,27 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Main (
-      main
-    ) where
+module Main
+  ( main
+  ) where
 
-import qualified Control.Concurrent         as Conc
-import qualified Control.Exception          as Ex
-import           Control.Monad
+import qualified Control.Concurrent as Conc
+import qualified Control.Concurrent.Async as Async
+import qualified Control.Exception as Ex
+import Control.Monad
 import qualified Control.Monad.State.Strict as S
-import           Data.Maybe
-import qualified Data.Text                  as T
-import qualified Data.Text.IO               as TIO
-import           Data.Time
-import qualified Frinfo.Config              as Config
-import           Frinfo.DBus
-import           Frinfo.Free
-import           Frinfo.MPD
-import           Frinfo.INotify
-import           Frinfo.Structure
-import           Options.Applicative
-import           Safe
-import           SlaveThread
-import           System.IO
-import qualified System.Process             as Process
+import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
+import Data.Time
+import qualified Frinfo.Config as Config
+import Frinfo.DBus
+import Frinfo.Free
+import Frinfo.INotify
+import Frinfo.MPD
+import Frinfo.Structure
+import Options.Applicative
+import Safe
+import System.IO
+import qualified System.Process as Process
 
 data Flags = Flags
     { mpd :: Bool
@@ -31,31 +30,29 @@ data Flags = Flags
     }
 
 options :: Parser Flags
-options = Flags
-    <$> switch
-        ( long "mpd"
-        <> help "Keep getting song info from MPD")
-    <*> switch
-        ( long "spotify"
-        <> help "Keep getting song info from Spotify")
-    <*> switch
-        ( long "inotify"
-        <> help "Watch for new files in the email folder. (Default ~/Mail/)")
+options =
+    Flags <$> switch (long "mpd" <> help "Keep getting song info from MPD") <*>
+    switch (long "spotify" <> help "Keep getting song info from Spotify") <*>
+    switch
+        (long "inotify" <>
+         help "Watch for new files in the email folder. (Default ~/Mail/)")
 
 helpOpts :: ParserInfo Flags
-helpOpts = info (helper <*> options)
-    ( fullDesc
-    <> progDesc "Print system information to stdout"
-    <> header "Frinfo")
+helpOpts =
+    info
+        (helper <*> options)
+        (fullDesc <> progDesc "Print system information to stdout" <>
+         header "Frinfo")
 
 -- | Log any exceptions to 'Config.crashFile'
 logException :: Ex.SomeException -> IO ()
 logException e = do
     putStrLn "Terminating"
     time <- getCurrentTime
-    withFile Config.crashFile AppendMode $ \file -> do
-        let errorLine = show time <> " - " <> show e
-        hPutStrLn file errorLine
+    withFile Config.crashFile AppendMode $
+        \file -> do
+            let errorLine = show time <> " - " <> show e
+            hPutStrLn file errorLine
 
 -- | The loop that keeps printing the system info
 printLoop :: MyState -> IO ()
@@ -79,10 +76,10 @@ main' :: Flags -> MyState -> IO ()
 main' flags initState = do
     let songMVar = dbusState . systemState $ initState
         emailMVar = emailState . systemState $ initState
-    mpdtId <- if mpd flags then Just <$> fork (connectToMPD songMVar) else return Nothing
-    dbustIdId <- if spotify flags then Just <$> fork (connectToDbus songMVar) else return Nothing
-    emailtId <- if inotify flags then Just <$> fork (watchEmailFolder emailMVar) else return Nothing
-    printLoop initState `Ex.finally` forM_ (catMaybes [mpdtId, dbustIdId, emailtId]) Conc.killThread
+    when (mpd flags) $ void (Async.async (connectToMPD songMVar))
+    when (spotify flags) $ void (Async.async (connectToDbus songMVar))
+    when (inotify flags) $ void (Async.async (watchEmailFolder emailMVar))
+    printLoop initState
 
 initialStaticState :: IO MyState
 initialStaticState = do
@@ -91,12 +88,17 @@ initialStaticState = do
     emailMVar <- Conc.newMVar 0
     -- remove newline
     let startingState = MyState dynamicState staticState'
-        dynamicState = SystemState { cpuState = [defaultCpuStat]
-                                   , netState = [defaultNetStat]
-                                   , dbusState = songMVar
-                                   , emailState = emailMVar
-                                   }
-        staticState' = StaticState { uname = unameIO }
+        dynamicState =
+            SystemState
+            { cpuState = [defaultCpuStat]
+            , netState = [defaultNetStat]
+            , dbusState = songMVar
+            , emailState = emailMVar
+            }
+        staticState' =
+            StaticState
+            { uname = unameIO
+            }
     return startingState
 
 -- | Convert number to seconds
