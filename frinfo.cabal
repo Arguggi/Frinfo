@@ -56,7 +56,6 @@ executable frinfo
                      , optparse-applicative
                      , process
                      , safe
-                     , slave-thread
                      , text
                      , time
   default-language:    Haskell2010
