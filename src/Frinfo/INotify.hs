@@ -63,7 +63,7 @@ updateMVar mvar action isDir =
 
 -- | Find all the subfolders of 'mailFolder' called @new@
 allNewFolders :: IO [FS.FilePath]
-allNewFolders = Tur.fold (FS.fromText <$> dirStream) F.list
+allNewFolders = Tur.fold (FS.fromText . Tur.lineToText <$> dirStream) F.list
   where
     dirStream =
         Tur.inproc

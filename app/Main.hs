@@ -9,6 +9,7 @@ import qualified Control.Concurrent.Async as Async
 import qualified Control.Exception as Ex
 import Control.Monad
 import qualified Control.Monad.State.Strict as S
+import Data.Monoid ((<>))
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Data.Time
