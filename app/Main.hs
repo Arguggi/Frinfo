@@ -7,8 +7,10 @@ module Main
 import qualified Control.Concurrent as Conc
 import qualified Control.Concurrent.Async as Async
 import qualified Control.Exception as Ex
+import Control.Lens ((^.))
 import Control.Monad
 import qualified Control.Monad.State.Strict as S
+import Data.Default (def)
 import Data.Monoid ((<>))
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
@@ -75,8 +77,8 @@ main = do
 -- and will be used for the duration of the program
 main' :: Flags -> MyState -> IO ()
 main' flags initState = do
-    let songMVar = dbusState . systemState $ initState
-        emailMVar = emailState . systemState $ initState
+    let songMVar = initState ^. systemState . dbusState
+        emailMVar = initState ^. systemState . emailState
     when (mpd flags) $ void (Async.async (connectToMPD songMVar))
     when (spotify flags) $ void (Async.async (connectToDbus songMVar))
     when (inotify flags) $ void (Async.async (watchEmailFolder emailMVar))
@@ -91,14 +93,14 @@ initialStaticState = do
     let startingState = MyState dynamicState staticState'
         dynamicState =
             SystemState
-            { cpuState = [defaultCpuStat]
-            , netState = [defaultNetStat]
-            , dbusState = songMVar
-            , emailState = emailMVar
+            { _cpuState = [def]
+            , _netState = [def]
+            , _dbusState = songMVar
+            , _emailState = emailMVar
             }
         staticState' =
             StaticState
-            { uname = unameIO
+            { _uname = unameIO
             }
     return startingState
 

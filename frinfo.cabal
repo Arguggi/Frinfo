@@ -50,8 +50,10 @@ executable frinfo
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall
   build-depends:       base
                      , async >=2.1
+                     , data-default >=0.6
                      , free >=4.12
                      , frinfo
+                     , lens >=4.14
                      , mtl >=2.2
                      , optparse-applicative >=0.13
                      , process >=1.4
@@ -75,6 +77,7 @@ benchmark frinfo-benchmark
   main-is:             Main.hs
   build-depends:       base >=4.9
                      , criterion >=1.1
+                     , data-default >=0.6
                      , frinfo
                      , mtl >=2.2
                      , text >=1.2

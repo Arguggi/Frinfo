@@ -24,7 +24,7 @@ freeStruc = do
     --script getCpuRpm
     separator
     icon Config.unameColor Config.unameIcon
-    static uname
+    static _uname
     separator
     script getUptime
     separator
