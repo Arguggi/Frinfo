@@ -27,10 +27,10 @@ getBatteryPerc =
     SIO.withFile Config.batteryFile ReadMode $ \file -> do
         stat <- Read.decimal <$> TIO.hGetContents file :: IO (Either String (Int, T.Text))
         case stat of
-            Left  _ -> return "0"
+            Left _ -> return "0"
             Right (y, _) -> return (formatted y <> "%")
-        where
-            formatted = sformat (Format.left 2 ' ' %. Format.int)
+  where
+    formatted = sformat (Format.left 2 ' ' %. Format.int)
 
 -- | Get name of the song that is playing
 getSong :: SystemState -> IO (T.Text, SystemState)
@@ -55,11 +55,10 @@ getUnreadEmails oldState = do
 getNetAverage :: SystemState -> IO (T.Text, SystemState)
 getNetAverage oldState = do
     newState <- getNetStat
-    return (netSpeed . headDef def . sort $ newAverages newState
-           , oldState & netState .~ newState )
-    where
-        oldNetState = oldState ^. netState
-        newAverages = zipWith netAverage oldNetState
+    return (netSpeed . headDef def . sort $ newAverages newState, oldState & netState .~ newState)
+  where
+    oldNetState = oldState ^. netState
+    newAverages = zipWith netAverage oldNetState
 
 -- | Pretty print an Interface name and traffic
 netSpeed :: NetStat -> T.Text
@@ -73,8 +72,7 @@ netSpeed (NetStat inter up down) = interfaceText <> downSpeed <> downIcon <> upS
 -- | Get bits sent and received for every interface from @\/proc\/net\/dev@
 getNetStat :: IO [NetStat]
 getNetStat =
-    SIO.withFile Config.netStatFile ReadMode $
-    \file -> do
+    SIO.withFile Config.netStatFile ReadMode $ \file -> do
         stat <- filterNetStats <$> TIO.hGetContents file
         return $ fmap parseNet stat
 
@@ -82,14 +80,16 @@ getNetStat =
 -- since the last state.
 getCpuAverage :: SystemState -> IO (T.Text, SystemState)
 getCpuAverage oldState =
-    SIO.withFile Config.cpuStatFile ReadMode $
-    \file -> do
+    SIO.withFile Config.cpuStatFile ReadMode $ \file -> do
         stat <- filterCpuStats <$> TIO.hGetContents file
         let oldCpuState = oldState ^. cpuState
         case Atto.parseOnly cpuStatParser stat of
             (Left _) -> return ("", oldState)
-            (Right newState) -> return (padCpu $ zipWith cpuAverage oldCpuState newState,
-                                        oldState {_cpuState = newState})
+            (Right newState) ->
+                return
+                    ( padCpu $ zipWith cpuAverage oldCpuState newState
+                    , oldState {_cpuState = newState})
+
 -- | Parse a @\/proc\/net\/dev@ line
 parseNet :: T.Text -> NetStat
 parseNet x = getTotal $ T.words x
@@ -109,8 +109,7 @@ getTime = do
 -- | Pretty print the total uptime from @\/proc\/uptime@
 getUptime :: IO T.Text
 getUptime =
-    SIO.withFile "/proc/uptime" ReadMode $
-    \file -> do
+    SIO.withFile "/proc/uptime" ReadMode $ \file -> do
         uptime <- TIO.hGetContents file
         case Atto.parseOnly uptimeParser uptime of
             (Left _) -> return ""
@@ -154,8 +153,7 @@ isntLo x = first /= "lo:"
 -}
 getRam :: IO T.Text
 getRam =
-    withFile Config.ramStatFile ReadMode $
-    \file -> do
+    withFile Config.ramStatFile ReadMode $ \file -> do
         memInfo <- (take 3 . T.lines) <$> TIO.hGetContents file
         let total = headDef "" $ filter ("MemTotal:" `T.isPrefixOf`) memInfo
             available = headDef "" $ filter ("MemAvailable:" `T.isPrefixOf`) memInfo
@@ -167,8 +165,7 @@ getRam =
 -- | Get the cpu fan RPM from @\/sys\/class\/hwmon\/hwmon1\/fan2_input@
 getCpuRpm :: IO T.Text
 getCpuRpm =
-    withFile Config.rpmStatFile ReadMode $
-    \file -> do
+    withFile Config.rpmStatFile ReadMode $ \file -> do
         rpm <- TIO.hGetContents file
         let rpmText = readDef 0 $ T.unpack rpm
         return $ padWithUnit rpmText 4 "RPM"
@@ -186,8 +183,7 @@ totalMemKb _ = 0
 -- wide 2 characters
 toUptimeText :: Integer -> T.Text
 toUptimeText totalSecs =
-    padTime days "d" <> padTime hours "h" <> padTime minutes "m" <>
-    padTime seconds "s"
+    padTime days "d" <> padTime hours "h" <> padTime minutes "m" <> padTime seconds "s"
   where
     (days, remDays) = quotRem totalSecs secDay
     (hours, remHours) = quotRem remDays secHour
@@ -236,8 +232,7 @@ padWithUnit
     -> Int -- ^ Min width
     -> T.Text -- ^ Unit
     -> T.Text -- ^ Final 'T.Text'
-padWithUnit x width =
-    sformat ((Format.left width ' ' %. Format.int) % Format.stext % " ") x
+padWithUnit x width = sformat ((Format.left width ' ' %. Format.int) % Format.stext % " ") x
 
 -- | Pad the time units so they are always wide 2 charaters
 padTime :: Integer -> T.Text -> T.Text

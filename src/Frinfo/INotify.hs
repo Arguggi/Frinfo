@@ -22,19 +22,16 @@ data Action
 -- returned 'Conc.MVar' on each callback
 watchEmailFolder :: Conc.MVar Int -> IO ()
 watchEmailFolder mvar =
-    bracketOnError IN.initINotify IN.killINotify $
-    \notify -> do
+    bracketOnError IN.initINotify IN.killINotify $ \notify -> do
         folders <- allNewFolders
-        forM_ folders $
-            \folder -> do
-                files <- getTotalFiles folder
-                when (files > 0) $
-                    Conc.modifyMVar_ mvar $ \x -> return (x + files)
-                IN.addWatch
-                    notify
-                    [IN.Create, IN.MoveIn, IN.Delete, IN.MoveOut]
-                    (toPreludeFp folder)
-                    (eventLength mvar)
+        forM_ folders $ \folder -> do
+            files <- getTotalFiles folder
+            when (files > 0) $ Conc.modifyMVar_ mvar $ \x -> return (x + files)
+            IN.addWatch
+                notify
+                [IN.Create, IN.MoveIn, IN.Delete, IN.MoveOut]
+                (toPreludeFp folder)
+                (eventLength mvar)
 
 -- | Turtle gives back 'FS.FilePath' but 'System.INotify' uses 'Prelude.FilePath'
 -- so we have to convert between the two.

@@ -1,31 +1,31 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Frinfo
-        ( main
-        , logException
-        , freeStruc
-        ) where
+    ( main
+    , logException
+    , freeStruc
+    ) where
 
-import qualified Control.Concurrent         as Conc
-import qualified Control.Exception          as Ex
-import           Control.Monad
-import           Control.Monad.Free
+import qualified Control.Concurrent as Conc
+import qualified Control.Exception as Ex
+import Control.Monad
+import Control.Monad.Free
 import qualified Control.Monad.State.Strict as S
-import           Data.Default
-import qualified Data.Text                  as T
-import qualified Data.Text.IO               as TIO
-import           Data.Time
-import qualified Frinfo.Config              as Config
-import           Frinfo.DBus
-import           Frinfo.Free
-import           Frinfo.MPD
-import           Frinfo.INotify
-import           Frinfo.Scripts
-import           Options.Applicative
-import           Safe
-import           System.IO
-import qualified System.Posix.Signals       as Sign
-import qualified System.Process             as Process
+import Data.Default
+import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
+import Data.Time
+import qualified Frinfo.Config as Config
+import Frinfo.DBus
+import Frinfo.Free
+import Frinfo.INotify
+import Frinfo.MPD
+import Frinfo.Scripts
+import Options.Applicative
+import Safe
+import System.IO
+import qualified System.Posix.Signals as Sign
+import qualified System.Process as Process
 
 data Flags = Flags
     { mpd :: Bool
@@ -34,22 +34,16 @@ data Flags = Flags
     }
 
 options :: Parser Flags
-options = Flags
-    <$> switch
-        ( long "mpd"
-        <> help "Keep getting song info from MPD")
-    <*> switch
-        ( long "spotify"
-        <> help "Keep getting song info from Spotify")
-    <*> switch
-        ( long "inotify"
-        <> help "Watch for new files in the email folder. (Default ~/Mail/)")
+options =
+    Flags <$> switch (long "mpd" <> help "Keep getting song info from MPD") <*>
+    switch (long "spotify" <> help "Keep getting song info from Spotify") <*>
+    switch (long "inotify" <> help "Watch for new files in the email folder. (Default ~/Mail/)")
 
 helpOpts :: ParserInfo Flags
-helpOpts = info (helper <*> options)
-    ( fullDesc
-    <> progDesc "Print system information to stdout"
-    <> header "Frinfo")
+helpOpts =
+    info
+        (helper <*> options)
+        (fullDesc <> progDesc "Print system information to stdout" <> header "Frinfo")
 
 -- | Log any exceptions to 'Config.crashFile'
 logException :: Ex.SomeException -> IO ()
@@ -84,14 +78,12 @@ main' = do
     unameIO <- (T.pack . initSafe) <$> Process.readProcess "uname" ["-r"] []
     songMVar <- Conc.newMVar Config.noSongPlaying
     emailMVar <- Conc.newMVar 0
-    when (mpd flags)     (void . Conc.forkIO $ connectToMPD songMVar)
+    when (mpd flags) (void . Conc.forkIO $ connectToMPD songMVar)
     when (spotify flags) (void . Conc.forkIO $ connectToDbus songMVar)
     when (inotify flags) (void . Conc.forkIO $ watchEmailFolder emailMVar)
     let startingState = MyState dynamicState staticState'
-        dynamicState = def { _dbusState = songMVar
-                           , _emailState = emailMVar
-                           }
-        staticState' = StaticState { _uname = unameIO }
+        dynamicState = def {_dbusState = songMVar, _emailState = emailMVar}
+        staticState' = StaticState {_uname = unameIO}
     printLoop startingState
 
 -- | Build the data structure that will then be 'interpreted'

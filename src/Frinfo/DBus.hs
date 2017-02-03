@@ -5,11 +5,11 @@ module Frinfo.DBus where
 import qualified Control.Concurrent as Conc
 import Control.Exception
 import Control.Monad
+import qualified DBus as DBus
+import qualified DBus.Client as DBusC
 import qualified Data.List as L
 import Data.Maybe
 import qualified Data.Text as T
-import qualified DBus as DBus
-import qualified DBus.Client as DBusC
 import Formatting (sformat, (%), (%.))
 import qualified Formatting.Formatters as Format
 import Safe
@@ -18,17 +18,13 @@ import Safe
 -- changes
 connectToDbus :: Conc.MVar T.Text -> IO ()
 connectToDbus mvar =
-    bracketOnError DBusC.connectSession DBusC.disconnect $
-    \client -> do
+    bracketOnError DBusC.connectSession DBusC.disconnect $ \client -> do
         _ <- DBusC.addMatch client matchSpotify (updateSong mvar)
         return ()
 
 -- | Only match the spotify dbus
 matchSpotify :: DBusC.MatchRule
-matchSpotify =
-    DBusC.matchAny
-    { DBusC.matchPath = Just "/org/mpris/MediaPlayer2"
-    }
+matchSpotify = DBusC.matchAny {DBusC.matchPath = Just "/org/mpris/MediaPlayer2"}
 
 -- | Return the callback that will be used when a signal is received using the
 -- 'MVar'
@@ -37,12 +33,13 @@ updateSong mvar signal =
     unless (length (DBus.signalBody signal) < 2) $
     -- Spotify should send a message in an array of 2 elements, the first element
     -- is useless, the second one has all of the information
-    do let body = (DBus.signalBody signal) !! 1
-           dict = DBus.fromVariant body
-           song = songInfo dict
+     do
+        let body = (DBus.signalBody signal) !! 1
+            dict = DBus.fromVariant body
+            song = songInfo dict
        -- Either save the new song info in the MVar or keep the old text if an
        -- exception occurs or song == Nothing for some reason
-       Conc.modifyMVar_ mvar $ \x -> return (fromMaybe x song)
+        Conc.modifyMVar_ mvar $ \x -> return (fromMaybe x song)
 
 -- | Maximum song info character length
 maxSongChars :: Int
@@ -75,8 +72,7 @@ songInfo justdict
     artist <- headDef "" <$> DBus.fromVariant artistA
     return $
         sformat
-            ((Format.fitRight maxSongChars) %.
-             (Format.string % " - " % Format.string))
+            ((Format.fitRight maxSongChars) %. (Format.string % " - " % Format.string))
             artist
             songName
 

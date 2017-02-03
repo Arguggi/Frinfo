@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Frinfo.Free where
 
@@ -15,8 +15,8 @@ import qualified Frinfo.Config as Config
 
 type Path = T.Text
 
-data Info next =
-      Separator next
+data Info next
+    = Separator next
       -- ^ Add a simple separator, defined as 'sep'
     | Icon Config.Color
            Path
@@ -36,11 +36,11 @@ data Info next =
 
 -- | Cpu data taken from @\/proc\/stat@
 data CpuStat = CpuStat
-    { _user   :: Integer
+    { _user :: Integer
     -- ^User stats
     , _system :: Integer
     -- ^System stats
-    , _idle   :: Integer
+    , _idle :: Integer
     -- ^Idle stats
     } deriving (Show)
 
@@ -50,17 +50,17 @@ data NetStat = NetStat
     -- ^ Inteface name (e.g. enp5s0)
     , _downTotal :: Integer
     -- ^ Total bits downloaded
-    , _upTotal   :: Integer
+    , _upTotal :: Integer
     -- ^ Total bits uploaded
     } deriving (Show)
 
 -- | Dynamic state that will be used with the 'ScriptState' constructor
 data SystemState = SystemState
-    { _cpuState   :: [CpuStat]
+    { _cpuState :: [CpuStat]
     -- ^ List of all 'CpuStat', one for each core and one for the total average
-    , _netState   :: [NetStat]
+    , _netState :: [NetStat]
     -- ^ List of all 'NetStat', one for each interface
-    , _dbusState  :: Conc.MVar T.Text
+    , _dbusState :: Conc.MVar T.Text
     -- ^ Currently playing song
     , _emailState :: Conc.MVar Int
     -- ^ Number of unread emails
@@ -81,10 +81,12 @@ data MyState = MyState
     }
 
 makeLenses ''MyState
-makeLenses ''StaticState
-makeLenses ''SystemState
-makeLenses ''NetStat
 
+makeLenses ''StaticState
+
+makeLenses ''SystemState
+
+makeLenses ''NetStat
 
 -- | Specialized 'S.StateT' with 'MyState' and 'T.Text'
 type StateM = S.StateT MyState IO T.Text
@@ -93,7 +95,7 @@ instance Ord NetStat where
     compare (NetStat _ d1 _) (NetStat _ d2 _) = compare d2 d1
 
 instance Eq NetStat where
-    (NetStat _ d1 _) ==  (NetStat _ d2 _) = d1 == d2
+    (NetStat _ d1 _) == (NetStat _ d2 _) = d1 == d2
 
 instance Default CpuStat where
     def = CpuStat 0 0 0
