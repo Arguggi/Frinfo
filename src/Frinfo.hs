@@ -71,7 +71,6 @@ main = main' `Ex.catch` logException
 main' :: IO ()
 main' = do
     threadId <- Conc.myThreadId
-    _ <- Sign.installHandler Sign.sigTERM (Sign.Catch (Conc.killThread threadId)) Nothing
     hSetBuffering stdout LineBuffering
     flags <- execParser helpOpts
     -- remove newline
