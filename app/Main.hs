@@ -23,6 +23,8 @@ import Frinfo.MPD
 import Frinfo.Structure
 import Options.Applicative
 import Safe
+import System.Directory
+    (createDirectoryIfMissing, getXdgDirectory, withCurrentDirectory, XdgDirectory(XdgData))
 import System.IO
 import qualified System.Process as Process
 import SlaveThread (fork)
@@ -51,10 +53,13 @@ helpOpts =
 -- | Log any exceptions to 'Config.crashFile'
 logException :: Ex.SomeException -> IO ()
 logException e = do
-    putStrLn "Terminating"
     time <- getCurrentTime
     let errorLine = show time <> " - " <> show e
-    withFile Config.crashFile AppendMode $ flip hPutStrLn errorLine
+    print e
+    xdgData <- getXdgDirectory XdgData "frinfo"
+    createDirectoryIfMissing True xdgData
+    withCurrentDirectory xdgData $
+        withFile Config.crashFileName AppendMode $ flip hPutStrLn errorLine
 
 -- | The loop that keeps printing the system info
 printLoop :: MyState -> IO ()

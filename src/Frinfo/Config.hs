@@ -74,8 +74,8 @@ rpmStatFile :: String
 rpmStatFile = "/sys/class/hwmon/hwmon1/fan2_input"
 
 -- | Log exceptions to this file
-crashFile :: String
-crashFile = "/home/arguggi/frinfo.log"
+crashFileName :: String
+crashFileName = "frinfo.log"
 
 -- | Battery file
 batteryFile :: String
