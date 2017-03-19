@@ -37,7 +37,7 @@ getSong :: SystemState -> IO (T.Text, SystemState)
 getSong oldState = do
     songInfo <- Conc.tryReadMVar (oldState ^. dbusState)
     case songInfo of
-        Just song -> return (song, oldState)
+        Just song -> return (T.take 30 song, oldState)
         Nothing -> return (Config.noSongPlaying, oldState)
 
 -- | Get total unread emails
