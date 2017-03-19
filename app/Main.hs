@@ -5,7 +5,6 @@ module Main
   ) where
 
 import qualified Control.Concurrent as Conc
-import qualified Control.Concurrent.Async as Async
 import qualified Control.Exception as Ex
 import Control.Lens ((^.))
 import Control.Monad
@@ -26,6 +25,7 @@ import Options.Applicative
 import Safe
 import System.IO
 import qualified System.Process as Process
+import SlaveThread (fork)
 
 data Flags = Flags
     { mpd :: Bool
@@ -53,10 +53,8 @@ logException :: Ex.SomeException -> IO ()
 logException e = do
     putStrLn "Terminating"
     time <- getCurrentTime
-    withFile Config.crashFile AppendMode $
-        \file -> do
-            let errorLine = show time <> " - " <> show e
-            hPutStrLn file errorLine
+    let errorLine = show time <> " - " <> show e
+    withFile Config.crashFile AppendMode $ flip hPutStrLn errorLine
 
 -- | The loop that keeps printing the system info
 printLoop :: MyState -> IO ()
@@ -80,9 +78,9 @@ main' :: Flags -> MyState -> IO ()
 main' flags initState = do
     let songMVar = initState ^. systemState . dbusState
         emailMVar = initState ^. systemState . emailState
-    when (mpd flags) $ void (Async.async (connectToMPD songMVar))
-    when (spotify flags) $ void (Async.async (connectToDbus songMVar))
-    when (inotify flags) $ void (Async.async (watchEmailFolder emailMVar))
+    when (mpd flags) $ void (fork (connectToMPD songMVar))
+    when (spotify flags) $ void (fork (connectToDbus songMVar))
+    when (inotify flags) $ void (fork (watchEmailFolder emailMVar))
     printLoop initState
 
 initialStaticState :: IO MyState
