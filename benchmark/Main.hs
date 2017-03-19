@@ -2,14 +2,16 @@
 
 module Main (main) where
 
-import qualified Control.Concurrent         as Conc
+import qualified Control.Concurrent as Conc
 import Criterion (bench, bgroup)
 import Criterion.Main (defaultMain, nfIO)
 import Data.Default (def)
-import qualified Frinfo.Structure           as F
-import qualified Frinfo.Free                as FF
-import qualified Frinfo.INotify             as IN
+import qualified Frinfo.Structure as F
+import qualified Frinfo.Free as FF
+import qualified Frinfo.INotify as IN
 import qualified Control.Monad.State.Strict as S
+import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.Builder as TLB
 
 main :: IO ()
 main = do
@@ -19,7 +21,10 @@ main = do
         fresStrucMvar = (def :: FF.MyState) { FF._systemState = sState { FF._dbusState = songMVar, FF._emailState = emailMVar }}
     defaultMain
         [ bgroup "frinfo"
-            [ bench "Print Dzen" $ nfIO (S.evalStateT (FF.printDzen F.freeStruc) fresStrucMvar)]
+            [ bench "Print Dzen" $ nfIO $ do
+                t <- S.evalStateT (FF.printDzen F.freeStruc) fresStrucMvar
+                return . TL.toStrict . TLB.toLazyText $ t
+            ]
         , bgroup "INotify"
             [ bench "New Folders" $ nfIO IN.allNewFolders
             , bench "Total Files" $ nfIO $ IN.getTotalFiles "/home/arguggi/Downloads"

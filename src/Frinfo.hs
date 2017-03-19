@@ -12,6 +12,7 @@ import Control.Monad
 import Control.Monad.Free
 import qualified Control.Monad.State.Strict as S
 import Data.Default
+import Data.Monoid ((<>))
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Data.Time
@@ -24,7 +25,6 @@ import Frinfo.Scripts
 import Options.Applicative
 import Safe
 import System.IO
-import qualified System.Posix.Signals as Sign
 import qualified System.Process as Process
 
 data Flags = Flags
@@ -70,7 +70,6 @@ main = main' `Ex.catch` logException
 -- and will be used for the duration of the program
 main' :: IO ()
 main' = do
-    threadId <- Conc.myThreadId
     hSetBuffering stdout LineBuffering
     flags <- execParser helpOpts
     -- remove newline

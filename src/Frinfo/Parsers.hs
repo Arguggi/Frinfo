@@ -14,7 +14,7 @@ cpuStatParser = many' cpuStatParser'
 > Name User  Useless System Idle These all are useless
 > cpu0 45214 5036666 101606 4034 1048 0 4059 0 0 0
 
-@cpuX@ may also not have any number (just @cpu@), so we need 'choice'
+@cpuX@ may also not have any number (just @cpu@), so we need 'skipMany'
 -}
 -- | Parse a single cpu stat line from @\/proc\/stat@
 cpuStatParser' :: Parser CpuStat

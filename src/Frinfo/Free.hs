@@ -6,11 +6,12 @@ module Frinfo.Free where
 
 import qualified Control.Concurrent as Conc
 import Control.Lens
-import Control.Monad.Free
+import Control.Monad.Free (Free(..), liftF)
 import qualified Control.Monad.State.Strict as S
-import Data.Default
-import Data.Monoid
+import Data.Default (Default(), def)
+import Data.Monoid ((<>))
 import qualified Data.Text as T
+import qualified Data.Text.Lazy.Builder as TLB
 import qualified Frinfo.Config as Config
 
 type Path = T.Text
@@ -67,7 +68,7 @@ data SystemState = SystemState
     }
 
 -- | Static state that must be set at startup in 'main'
-data StaticState = StaticState
+newtype StaticState = StaticState
     { _uname :: T.Text
     -- ^ Output of @uname -r@
     } deriving (Show)
@@ -89,7 +90,7 @@ makeLenses ''SystemState
 makeLenses ''NetStat
 
 -- | Specialized 'S.StateT' with 'MyState' and 'T.Text'
-type StateM = S.StateT MyState IO T.Text
+type StateM = S.StateT MyState IO TLB.Builder
 
 instance Ord NetStat where
     compare (NetStat _ d1 _) (NetStat _ d2 _) = compare d2 d1
@@ -119,7 +120,7 @@ liftSystemScript systemScript = do
     state <- S.get
     (output, newS) <- S.liftIO $ systemScript (_systemState state)
     S.put (MyState newS (_staticState state))
-    return output
+    return $ TLB.fromText output
 
 -- | Separator that is used when the 'Separator' constructor is used
 sep :: T.Text
@@ -146,28 +147,27 @@ script x = liftF (Script x ())
 scriptState :: (SystemState -> IO (T.Text, SystemState)) -> Free Info ()
 scriptState x = liftF (ScriptState x ())
 
--- |Interpret the Info + Free Monad.
+-- | Interpret the Info + Free Monad.
 -- This outputs 'IO' ('T.Text', 'MyState').
 -- The 'T.Text' should be fed to dzen2.
---
 -- The 'MyState' should be used in the next print statement.
 printDzen :: Free Info () -> StateM
 printDzen (Free (Separator next)) = do
     rest <- printDzen next
-    return $ sep <> rest
+    return $ TLB.fromText sep <> rest
 printDzen (Free (Icon color path next)) = do
     let iconText = wrapIcon path
         wrappedIcon = wrapColor color iconText
     rest <- printDzen next
-    return $ wrappedIcon <> rest
+    return $ TLB.fromText wrappedIcon <> rest
 printDzen (Free (Static getStatic next)) = do
     rest <- printDzen next
     staticText <- S.gets (getStatic . _staticState)
-    return $ staticText <> rest
+    return $ TLB.fromText staticText <> rest
 printDzen (Free (Script ioScript next)) = do
     output <- S.liftIO ioScript
     rest <- printDzen next
-    return $ output <> rest
+    return $ TLB.fromText output <> rest
 printDzen (Free (ScriptState ioScript next)) = do
     output <- liftSystemScript ioScript
     rest <- printDzen next

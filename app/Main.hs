@@ -13,7 +13,8 @@ import qualified Control.Monad.State.Strict as S
 import Data.Default (def)
 import Data.Monoid ((<>))
 import qualified Data.Text as T
-import qualified Data.Text.IO as TIO
+import qualified Data.Text.Lazy.IO as TLIO
+import qualified Data.Text.Lazy.Builder as TLB
 import Data.Time
 import qualified Frinfo.Config as Config
 import Frinfo.DBus
@@ -61,7 +62,7 @@ logException e = do
 printLoop :: MyState -> IO ()
 printLoop state = do
     (output, newState) <- S.runStateT (printDzen freeStruc) state
-    TIO.putStrLn output
+    TLIO.putStrLn . TLB.toLazyText $ output
     Conc.threadDelay (secondsDelay 1)
     printLoop newState
 

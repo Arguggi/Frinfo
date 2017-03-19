@@ -35,6 +35,8 @@ library
                      , lens >=4.14
                      , libmpd >=0.9
                      , mtl >=2.2
+                     , optparse-applicative >=0.13
+                     , process >=1.4
                      , safe >=0.3
                      , system-filepath >=0.4
                      , text >=1.2
