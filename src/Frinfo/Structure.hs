@@ -21,6 +21,7 @@ freeStruc = do
     icon Config.upColor Config.upSpeedIcon
     separator
     scriptState getCpuAverage
+    --script getCpuTemp
     --script getCpuRpm
     separator
     icon Config.unameColor Config.unameIcon

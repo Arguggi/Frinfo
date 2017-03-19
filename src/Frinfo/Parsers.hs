@@ -19,7 +19,7 @@ cpuStatParser = many' cpuStatParser'
 -- | Parse a single cpu stat line from @\/proc\/stat@
 cpuStatParser' :: Parser CpuStat
 cpuStatParser' = do
-    parsedUser <- string "cpu" *> choice [digit, space] *> space *> decimal
+    parsedUser <- string "cpu" *> skipMany digit *> skipMany space *> decimal
     parsedSystem <- space *> (decimal :: Parser Integer) *> space *> decimal
     parsedIdle <- space *> decimal <* skipWhile (not . isEndOfLine)
     endOfLine

@@ -80,3 +80,7 @@ crashFile = "/home/arguggi/frinfo.log"
 -- | Battery file
 batteryFile :: String
 batteryFile = "/sys/class/power_supply/BAT0/capacity"
+
+-- | CPU Temp file
+cpuTempFile :: String
+cpuTempFile = "/sys/class/thermal/thermal_zone0/temp"

@@ -243,3 +243,14 @@ padCpu :: [Integer] -> T.Text
 padCpu xs = foldl' (<>) "" padded
   where
     padded = map (\x -> padWithUnit x 3 "%") xs
+
+-- | Get CPU Temperature
+getCpuTemp :: IO T.Text
+getCpuTemp =
+    SIO.withFile Config.cpuTempFile ReadMode $ \file -> do
+        stat <- Read.decimal <$> TIO.hGetContents file :: IO (Either String (Int, T.Text))
+        case stat of
+            Left _ -> return "NA"
+            Right (y, _) -> return (formatted (y `div` 1000) <> "°C")
+  where
+    formatted = sformat (Format.left 2 ' ' %. Format.int)
