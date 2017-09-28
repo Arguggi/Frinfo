@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ConstraintKinds #-}
 
 module Frinfo.Scripts where
 
@@ -20,6 +22,7 @@ import Frinfo.Free
 import Frinfo.Parsers
 import Safe
 import System.IO as SIO
+import Control.Monad.State
 
 -- | Get Battery percent level
 getBatteryPerc :: IO T.Text
@@ -33,32 +36,32 @@ getBatteryPerc =
     formatted = sformat (Format.left 2 ' ' %. Format.int)
 
 -- | Get name of the song that is playing
-getSong :: SystemState -> IO (T.Text, SystemState)
-getSong oldState = do
-    songInfo <- Conc.tryReadMVar (oldState ^. dbusState)
-    case songInfo of
-        Just song -> return (T.take 30 song, oldState)
-        Nothing -> return (Config.noSongPlaying, oldState)
+getSong :: StaticState -> IO T.Text
+getSong staticState = do
+    songInfo <- liftIO $ Conc.tryReadMVar (staticState ^. dbusState)
+    return $ case songInfo of
+            Just song -> T.take 30 song
+            Nothing -> Config.noSongPlaying
 
 -- | Get total unread emails
-getUnreadEmails :: SystemState -> IO (T.Text, SystemState)
-getUnreadEmails oldState = do
-    unreadEmails <- Conc.tryReadMVar (oldState ^. emailState)
-    case unreadEmails of
-        Just num -> return (unread num, oldState)
-        Nothing -> return (Config.noEmails, oldState)
+getUnreadEmails :: StaticState -> IO T.Text
+getUnreadEmails staticState = do
+    unreadEmails <- Conc.tryReadMVar (staticState ^. emailState)
+    return $ case unreadEmails of
+        Just num -> unread num
+        Nothing -> Config.noEmails
   where
     unread = sformat (Format.left 2 ' ' %. Format.int)
 
 -- | Return a new state with the interface that downloaded the most bits
 -- since the last state.
-getNetAverage :: SystemState -> IO (T.Text, SystemState)
-getNetAverage oldState = do
-    newState <- getNetStat
-    return (netSpeed . headDef def . sort $ newAverages newState, oldState & netState .~ newState)
-  where
-    oldNetState = oldState ^. netState
-    newAverages = zipWith netAverage oldNetState
+getNetAverage :: (MonadState SystemState m, MonadIO m) => m T.Text
+getNetAverage = do
+    oldNetState <- gets _netState
+    let newAverages = zipWith netAverage oldNetState
+    newState <- liftIO getNetStat
+    netState .= newState
+    return . netSpeed . headDef def . sort $ newAverages newState
 
 -- | Pretty print an Interface name and traffic
 netSpeed :: NetStat -> T.Text
@@ -72,23 +75,20 @@ netSpeed (NetStat inter up down) = interfaceText <> downSpeed <> downIcon <> upS
 -- | Get bits sent and received for every interface from @\/proc\/net\/dev@
 getNetStat :: IO [NetStat]
 getNetStat =
-    SIO.withFile Config.netStatFile ReadMode $ \file -> do
-        stat <- filterNetStats <$> TIO.hGetContents file
-        return $ fmap parseNet stat
+    SIO.withFile Config.netStatFile ReadMode $ \file ->
+        fmap parseNet . filterNetStats <$> TIO.hGetContents file
 
 -- | Return a new state with the updated stats for each thread
 -- since the last state.
-getCpuAverage :: SystemState -> IO (T.Text, SystemState)
-getCpuAverage oldState =
-    SIO.withFile Config.cpuStatFile ReadMode $ \file -> do
-        stat <- filterCpuStats <$> TIO.hGetContents file
-        let oldCpuState = oldState ^. cpuState
-        case Atto.parseOnly cpuStatParser stat of
-            (Left _) -> return ("", oldState)
-            (Right newState) ->
-                return
-                    ( padCpu $ zipWith cpuAverage oldCpuState newState
-                    , oldState {_cpuState = newState})
+getCpuAverage :: (MonadState SystemState m, MonadIO m) => m T.Text
+getCpuAverage = do
+    stat <- liftIO . SIO.withFile Config.cpuStatFile ReadMode $ \file -> filterCpuStats <$> TIO.hGetContents file
+    case Atto.parseOnly cpuStatParser stat of
+        (Left _) -> return ""
+        (Right newState) -> do
+            oldCpuState <- gets _cpuState
+            cpuState .= newState
+            return . padCpu $ zipWith cpuAverage oldCpuState newState
 
 -- | Parse a @\/proc\/net\/dev@ line
 parseNet :: T.Text -> NetStat
@@ -111,9 +111,9 @@ getUptime :: IO T.Text
 getUptime =
     SIO.withFile "/proc/uptime" ReadMode $ \file -> do
         uptime <- TIO.hGetContents file
-        case Atto.parseOnly uptimeParser uptime of
-            (Left _) -> return ""
-            (Right double) -> return $ toUptimeText (round double :: Integer)
+        return $ case Atto.parseOnly uptimeParser uptime of
+            (Left _) -> ""
+            (Right double) -> toUptimeText (round double :: Integer)
 
 -- | Filter the @\/proc\/stat@ file, we only need lines that start with cpu
 filterCpuStats :: T.Text -> T.Text
@@ -151,6 +151,7 @@ isntLo x = first /= "lo:"
 > Other useless lines
 
 -}
+
 getRam :: IO T.Text
 getRam =
     withFile Config.ramStatFile ReadMode $ \file -> do
@@ -249,8 +250,8 @@ getCpuTemp :: IO T.Text
 getCpuTemp =
     SIO.withFile Config.cpuTempFile ReadMode $ \file -> do
         stat <- Read.decimal <$> TIO.hGetContents file :: IO (Either String (Int, T.Text))
-        case stat of
-            Left _ -> return "NA"
-            Right (y, _) -> return (formatted (y `div` 1000) <> "°C")
+        return $ case stat of
+            Left _ -> "NA"
+            Right (y, _) -> formatted (y `div` 1000) <> "°C"
   where
     formatted = sformat (Format.left 2 ' ' %. Format.int)

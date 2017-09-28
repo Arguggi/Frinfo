@@ -4,30 +4,29 @@ module Main
   ( main
   ) where
 
-import qualified Control.Concurrent as Conc
-import qualified Control.Exception as Ex
 import Control.Lens ((^.))
-import Control.Monad
-import qualified Control.Monad.State.Strict as S
+import Control.Monad (when, void)
 import Data.Default (def)
 import Data.Monoid ((<>))
-import qualified Data.Text as T
-import qualified Data.Text.Lazy.IO as TLIO
-import qualified Data.Text.Lazy.Builder as TLB
-import Data.Time
-import qualified Frinfo.Config as Config
+import Data.Time (getCurrentTime)
 import Frinfo.DBus
 import Frinfo.Free
 import Frinfo.INotify
 import Frinfo.MPD
 import Frinfo.Structure
-import Options.Applicative
-import Safe
-import System.Directory
-    (createDirectoryIfMissing, getXdgDirectory, withCurrentDirectory, XdgDirectory(XdgData))
-import System.IO
-import qualified System.Process as Process
+import Options.Applicative (Parser, ParserInfo, switch, long, help, header, info, helper, fullDesc, progDesc, execParser)
+import Safe (initSafe)
 import SlaveThread (fork)
+import System.Directory (createDirectoryIfMissing, getXdgDirectory, withCurrentDirectory, XdgDirectory(XdgData))
+import System.IO (withFile, IOMode(..), hPutStrLn, hSetBuffering, stdout, BufferMode(..))
+
+import qualified Control.Concurrent as Conc
+import qualified Control.Exception as Ex
+import qualified Data.Text as T
+import qualified Data.Text.Lazy.Builder as TLB
+import qualified Data.Text.Lazy.IO as TLIO
+import qualified Frinfo.Config as Config
+import qualified System.Process as Process
 
 data Flags = Flags
     { mpd :: Bool
@@ -59,54 +58,54 @@ logException e = do
     xdgData <- getXdgDirectory XdgData "frinfo"
     createDirectoryIfMissing True xdgData
     withCurrentDirectory xdgData $
-        withFile Config.crashFileName AppendMode $ flip hPutStrLn errorLine
+        withFile Config.crashFileName AppendMode $
+            flip hPutStrLn errorLine
 
 -- | The loop that keeps printing the system info
-printLoop :: MyState -> IO ()
-printLoop state = do
-    (output, newState) <- S.runStateT (printDzen freeStruc) state
+printLoop :: StaticState -> SystemState -> IO ()
+printLoop staticS systemS = do
+    (output, newSystemS) <- runFree staticS systemS (printDzen freeStruc)
     TLIO.putStrLn . TLB.toLazyText $ output
     Conc.threadDelay (secondsDelay 1)
-    printLoop newState
+    printLoop staticS newSystemS
 
 -- | 'Ex.catch'-es all exceptions with 'Frinfo.logException'
 main :: IO ()
 main = do
     hSetBuffering stdout LineBuffering
     flags <- execParser helpOpts
-    initState <- initialStaticState
-    main' flags initState `Ex.catch` logException
+    (staticS, dynamicS) <- initialState
+    main' flags staticS dynamicS `Ex.catch` logException
 
 -- | The main' function must build a new 'StaticState' that will remain unchanged
 -- and will be used for the duration of the program
-main' :: Flags -> MyState -> IO ()
-main' flags initState = do
-    let songMVar = initState ^. systemState . dbusState
-        emailMVar = initState ^. systemState . emailState
+main' :: Flags -> StaticState -> SystemState -> IO ()
+main' flags staticS systemS = do
+    let songMVar = staticS ^. dbusState
+        emailMVar = staticS ^. emailState
     when (mpd flags) $ void (fork (connectToMPD songMVar))
     when (spotify flags) $ void (fork (connectToDbus songMVar))
     when (inotify flags) $ void (fork (watchEmailFolder emailMVar))
-    printLoop initState
+    printLoop staticS systemS
 
-initialStaticState :: IO MyState
-initialStaticState = do
+initialState :: IO (StaticState, SystemState)
+initialState = do
     unameIO <- (T.pack . initSafe) <$> Process.readProcess "uname" ["-r"] []
     songMVar <- Conc.newMVar Config.noSongPlaying
     emailMVar <- Conc.newMVar 0
     -- remove newline
-    let startingState = MyState dynamicState staticState'
-        dynamicState =
+    let dynamicState =
             SystemState
             { _cpuState = [def]
             , _netState = [def]
-            , _dbusState = songMVar
-            , _emailState = emailMVar
             }
         staticState' =
             StaticState
             { _uname = unameIO
+            , _dbusState = songMVar
+            , _emailState = emailMVar
             }
-    return startingState
+    return (staticState', dynamicState)
 
 -- | Convert number to seconds
 secondsDelay :: Int -> Int

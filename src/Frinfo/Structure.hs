@@ -10,10 +10,10 @@ import Frinfo.Scripts
 freeStruc :: Free Info ()
 freeStruc = do
     icon Config.headphoneColor Config.songIcon
-    scriptState getSong
+    staticIO getSong
     separator
-    icon Config.emailColor Config.emailIcon
-    scriptState getUnreadEmails
+    --icon Config.emailColor Config.emailIcon
+    staticIO getUnreadEmails
     separator
     script getRam
     separator
