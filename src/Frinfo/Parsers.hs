@@ -18,12 +18,12 @@ cpuStatParser = many' cpuStatParser'
 -}
 -- | Parse a single cpu stat line from @\/proc\/stat@
 cpuStatParser' :: Parser CpuStat
-cpuStatParser' = do
-    parsedUser <- string "cpu" *> skipMany digit *> skipMany space *> decimal
-    parsedSystem <- space *> (decimal :: Parser Integer) *> space *> decimal
-    parsedIdle <- space *> decimal <* skipWhile (not . isEndOfLine)
-    endOfLine
-    return $ CpuStat parsedUser parsedSystem parsedIdle
+cpuStatParser' = CpuStat <$> parsedUser <*> parsedSystem <*> parsedIdle
+    where
+        parsedUser = string "cpu" *> skipMany digit *> skipMany space *> decimal
+        parsedSystem = space *> (decimal :: Parser Integer) *> space *> decimal
+        parsedIdle = space *> decimal <* skipWhile (not . isEndOfLine) <* endOfLine
+
 
 {-| Example of the line we need to parse
 
