@@ -32,6 +32,8 @@ module Frinfo.Free
 
 import Control.Lens
 import Control.Monad.Free (Free(..), liftF, MonadFree)
+import Control.Monad.Free.Church (F)
+import qualified Control.Monad.Free.Church as Church
 import Control.Monad.Free.TH (makeFree)
 import Control.Monad.Reader (ReaderT(..), MonadReader, ask)
 import Control.Monad.State (StateT(..), MonadState, MonadIO, get, liftIO, put)
@@ -144,37 +146,39 @@ instance Default SystemState where
 sep :: T.Text
 sep = " | "
 
+printDzen :: (MonadIO m, MonadReader StaticState m, MonadState SystemState m) => F Info TLB.Builder -> m TLB.Builder
+printDzen = Church.iterM buildDzen
+
 -- | Interpret the Info + Free Monad.
 -- This outputs 'IO' ('T.Text', 'MyState').
 -- The 'T.Text' should be fed to dzen2.
 -- The 'MyState' should be used in the next print statement
-printDzen :: (MonadIO m, MonadReader StaticState m, MonadState SystemState m) => Free Info () -> m TLB.Builder
-printDzen (Free (Separator next)) = do
-    rest <- printDzen next
+buildDzen :: (MonadIO m, MonadReader StaticState m, MonadState SystemState m) => Info (m TLB.Builder) -> m TLB.Builder
+buildDzen (Separator next) = do
+    rest <- next
     return $ TLB.fromText sep <> rest
-printDzen (Free (Icon color path next)) = do
+buildDzen (Icon color path next) = do
     let iconText = wrapIcon path
         wrappedIcon = wrapColor color iconText
-    rest <- printDzen next
+    rest <- next
     return $ TLB.fromText wrappedIcon <> rest
-printDzen (Free (Static getStatic next)) =
-    printDzen (Free (StaticIO (return . getStatic) next))
-printDzen (Free (StaticIO ioScript next)) = do
-    rest <- printDzen next
+buildDzen (Static getStatic next) =
+    buildDzen (StaticIO (return . getStatic) next)
+buildDzen (StaticIO ioScript next) = do
+    rest <- next
     sstate <- ask
     staticTextIO <- liftIO $ ioScript sstate
     return $ TLB.fromText staticTextIO <> rest
-printDzen (Free (Script ioScript next)) = do
+buildDzen (Script ioScript next) = do
     output <- S.liftIO ioScript
-    rest <- printDzen next
+    rest <- next
     return $ TLB.fromText output <> rest
-printDzen (Free (ScriptState ioScript next)) = do
+buildDzen (ScriptState ioScript next) = do
     sState <- get
     (output, nState) <- liftIO $ runStateT ioScript sState
     put nState
-    rest <- printDzen next
+    rest <- next
     return $ TLB.fromText output <> rest
-printDzen (Pure _) = return ""
 
 -- Utility wrappers
 -- | Wrap some text in a color

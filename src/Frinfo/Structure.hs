@@ -1,14 +1,25 @@
-module Frinfo.Structure where
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts #-}
+module Frinfo.Structure
+    ( freeStruc
+    ) where
 
 import Control.Monad.Free
+import Control.Monad.Free.Church (F)
 import qualified Frinfo.Config as Config
+import qualified Data.Text.Lazy.Builder as TLB
 import Frinfo.Free
 import Frinfo.Scripts
 
+freeStruc :: F Info TLB.Builder
+freeStruc = do
+    freeStruc'
+    return ""
+
 -- | Build the data structure that will then be 'interpreted'
 -- See 'Info' for the available constructors
-freeStruc :: Free Info ()
-freeStruc = do
+freeStruc' :: (MonadFree Info m) => m ()
+freeStruc' = do
     icon Config.headphoneColor Config.songIcon
     staticIO getSong
     separator
