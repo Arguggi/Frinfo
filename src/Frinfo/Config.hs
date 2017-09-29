@@ -71,7 +71,7 @@ ramStatFile = "/proc/meminfo"
 
 -- | Cpu fan rpm file
 rpmStatFile :: String
-rpmStatFile = "/sys/class/hwmon/hwmon1/fan2_input"
+rpmStatFile = "/sys/class/hwmon/hwmon0/fan1_input"
 
 -- | Log exceptions to this file
 crashFileName :: String
@@ -83,4 +83,5 @@ batteryFile = "/sys/class/power_supply/BAT0/capacity"
 
 -- | CPU Temp file
 cpuTempFile :: String
-cpuTempFile = "/sys/class/thermal/thermal_zone0/temp"
+--cpuTempFile = "/sys/class/thermal/thermal_zone0/temp"
+cpuTempFile = "/sys/bus/platform/devices/it87.656/hwmon/hwmon0/temp1_input"
