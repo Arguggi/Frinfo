@@ -31,14 +31,13 @@ module Frinfo.Free
     ) where
 
 import Control.Lens
-import Control.Monad.Free (Free(..), liftF, MonadFree)
+import Control.Monad.Free (liftF, MonadFree)
 import Control.Monad.Free.Church (F)
 import qualified Control.Monad.Free.Church as Church
 import Control.Monad.Free.TH (makeFree)
 import Control.Monad.Reader (ReaderT(..), MonadReader, ask)
 import Control.Monad.State (StateT(..), MonadState, MonadIO, get, liftIO, put)
 import Data.Default (Default(), def)
-import Data.Monoid ((<>))
 import qualified Control.Concurrent as Conc
 import qualified Control.Monad.State.Strict as S
 import qualified Data.Text as T

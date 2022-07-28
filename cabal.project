@@ -1,4 +1,0 @@
-packages:
-    ./
-
-with-compiler: ghc-8.2.1

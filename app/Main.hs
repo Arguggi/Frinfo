@@ -7,7 +7,6 @@ module Main
 import Control.Lens ((^.))
 import Control.Monad (when, void)
 import Data.Default (def)
-import Data.Monoid ((<>))
 import Data.Time (getCurrentTime)
 import Frinfo.DBus
 import Frinfo.Free
@@ -66,7 +65,7 @@ printLoop :: StaticState -> SystemState -> IO ()
 printLoop staticS systemS = do
     (output, newSystemS) <- runFree staticS systemS (printDzen freeStruc)
     TLIO.putStrLn . TLB.toLazyText $ output
-    Conc.threadDelay (secondsDelay 1)
+    Conc.threadDelay 500000
     printLoop staticS newSystemS
 
 -- | 'Ex.catch'-es all exceptions with 'Frinfo.logException'
@@ -90,7 +89,7 @@ main' flags staticS systemS = do
 
 initialState :: IO (StaticState, SystemState)
 initialState = do
-    unameIO <- (T.pack . initSafe) <$> Process.readProcess "uname" ["-r"] []
+    unameIO <- T.pack . initSafe <$> Process.readProcess "uname" ["-r"] []
     songMVar <- Conc.newMVar Config.noSongPlaying
     emailMVar <- Conc.newMVar 0
     -- remove newline
@@ -106,7 +105,3 @@ initialState = do
             , _emailState = emailMVar
             }
     return (staticState', dynamicState)
-
--- | Convert number to seconds
-secondsDelay :: Int -> Int
-secondsDelay x = x * 1000000

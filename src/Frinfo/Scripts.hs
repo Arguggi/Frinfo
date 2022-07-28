@@ -9,7 +9,6 @@ import Control.Lens
 import qualified Data.Attoparsec.Text as Atto
 import Data.Default
 import Data.List (foldl', sort)
-import Data.Monoid
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import qualified Data.Text.Read as Read
@@ -23,6 +22,7 @@ import Frinfo.Parsers
 import Safe
 import System.IO as SIO
 import Control.Monad.State
+import qualified System.Process as Process
 
 -- | Get Battery percent level
 getBatteryPerc :: IO T.Text
@@ -255,3 +255,11 @@ getCpuTemp =
             Right (y, _) -> formatted (y `div` 1000) <> "°C"
   where
     formatted = sformat (Format.left 2 ' ' %. Format.int)
+
+getMuted :: IO T.Text
+getMuted = do
+    muted <- T.pack . initSafe  <$> Process.readCreateProcess (Process.shell "pactl get-source-mute 0 | cut -d ' ' -f 2") ""
+    return $ if muted == "yes" then "     " else "^fg(#FF0000)REC^fg()"
+
+getVolume :: IO T.Text
+getVolume = T.strip . T.pack . initSafe  <$> Process.readCreateProcess (Process.shell "pactl get-sink-volume '@DEFAULT_SINK@' | head -n 1 | cut -d '/' -f 2") ""

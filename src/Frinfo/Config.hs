@@ -31,19 +31,19 @@ upColor :: Color
 upColor = "#cc0000"
 
 songIcon :: T.Text
-songIcon = "/home/arguggi/dotfiles/icons/xbm8x8/phones.xbm"
+songIcon = "/home/ruggero/.config/icons/xbm8x8/phones.xbm"
 
 emailIcon :: T.Text
-emailIcon = "/home/arguggi/dotfiles/icons/stlarch/mail7.xbm"
+emailIcon = "/home/ruggero/.config/icons/stlarch/mail7.xbm"
 
 upSpeedIcon :: T.Text
-upSpeedIcon = "/home/arguggi/dotfiles/icons/xbm8x8/net_up_03.xbm"
+upSpeedIcon = "/home/ruggero/.config/icons/xbm8x8/net_up_03.xbm"
 
 downSpeedIcon :: T.Text
-downSpeedIcon = "/home/arguggi/dotfiles/icons/xbm8x8/net_down_03.xbm"
+downSpeedIcon = "/home/ruggero/.config/icons/xbm8x8/net_down_03.xbm"
 
 unameIcon :: T.Text
-unameIcon = "/home/arguggi/dotfiles/icons/xbm8x8/arch_10x10.xbm"
+unameIcon = "/home/ruggero/.config/icons/xbm8x8/arch_10x10.xbm"
 
 -- | Default text for an empty MVar in 'Frinfo.Scripts.getSong'
 noSongPlaying :: T.Text
@@ -55,7 +55,7 @@ noEmails = " 0"
 
 -- | Folder where offlineimap saves all the emails
 mailFolder :: T.Text
-mailFolder = "/home/arguggi/Mail/"
+mailFolder = "/home/ruggero/Mail/"
 
 -- | Network interface stats file
 netStatFile :: String
@@ -71,7 +71,7 @@ ramStatFile = "/proc/meminfo"
 
 -- | Cpu fan rpm file
 rpmStatFile :: String
-rpmStatFile = "/sys/class/hwmon/hwmon0/fan1_input"
+rpmStatFile = "/sys/class/hwmon/hwmon2/fan1_input"
 
 -- | Log exceptions to this file
 crashFileName :: String
@@ -84,4 +84,5 @@ batteryFile = "/sys/class/power_supply/BAT0/capacity"
 -- | CPU Temp file
 cpuTempFile :: String
 --cpuTempFile = "/sys/class/thermal/thermal_zone0/temp"
-cpuTempFile = "/sys/bus/platform/devices/it87.656/hwmon/hwmon0/temp1_input"
+cpuTempFile = "/sys/class/hwmon/hwmon0/temp1_input"
+--cpuTempFile = "/sys/bus/platform/devices/it87.656/hwmon/hwmon0/temp1_input"

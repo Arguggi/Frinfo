@@ -10,7 +10,6 @@ import qualified Data.Text as T
 import qualified Filesystem.Path.CurrentOS as FS
 import qualified Frinfo.Config as Config
 import qualified System.INotify as IN
-import qualified Turtle as Tur hiding (FilePath, Text)
 
 -- | Boolean blindness is not fun
 data Action
@@ -22,16 +21,18 @@ data Action
 -- returned 'Conc.MVar' on each callback
 watchEmailFolder :: Conc.MVar Int -> IO ()
 watchEmailFolder mvar =
-    bracketOnError IN.initINotify IN.killINotify $ \notify -> do
-        folders <- allNewFolders
-        forM_ folders $ \folder -> do
-            files <- getTotalFiles folder
-            when (files > 0) $ Conc.modifyMVar_ mvar $ \x -> return (x + files)
-            IN.addWatch
-                notify
-                [IN.Create, IN.MoveIn, IN.Delete, IN.MoveOut]
-                (toPreludeFp folder)
-                (eventLength mvar)
+    return ()
+    -- Not used anymore
+    -- bracketOnError IN.initINotify IN.killINotify $ \notify -> do
+    --     folders <- allNewFolders
+    --     forM_ folders $ \folder -> do
+    --         files <- getTotalFiles folder
+    --         when (files > 0) $ Conc.modifyMVar_ mvar $ \x -> return (x + files)
+    --         IN.addWatch
+    --             notify
+    --             [IN.Create, IN.MoveIn, IN.Delete, IN.MoveOut]
+    --             (toPreludeFp folder)
+    --             (eventLength mvar)
 
 -- | Turtle gives back 'FS.FilePath' but 'System.INotify' uses 'Prelude.FilePath'
 -- so we have to convert between the two.
@@ -60,16 +61,18 @@ updateMVar mvar action isDir =
 
 -- | Find all the subfolders of 'mailFolder' called @new@
 allNewFolders :: IO [FS.FilePath]
-allNewFolders = Tur.fold (FS.fromText . Tur.lineToText <$> dirStream) F.list
-  where
-    dirStream =
-        Tur.inproc
-        -- Turtle has a find function but it was ~30 times slower than find
-        -- This takes ~0.02 seconds, find takes ~0.60 on my machine
-            "find"
-            [Config.mailFolder, "-name", "new", "-type", "d"]
-            Tur.empty
+allNewFolders = return []
+-- allNewFolders = Tur.fold (FS.fromText . Tur.lineToText <$> dirStream) F.list
+--   where
+--     dirStream =
+--         Tur.inproc
+--         -- Turtle has a find function but it was ~30 times slower than find
+--         -- This takes ~0.02 seconds, find takes ~0.60 on my machine
+--             "find"
+--             [Config.mailFolder, "-name", "new", "-type", "d"]
+--             Tur.empty
 
 -- | Total number of files in a 'FS.FilePath'
 getTotalFiles :: FS.FilePath -> IO Int
-getTotalFiles folder = Tur.fold (Tur.ls folder) F.length
+getTotalFiles folder = return 0
+--getTotalFiles folder = Tur.fold (Tur.ls folder) F.length

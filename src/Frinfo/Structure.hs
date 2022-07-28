@@ -20,12 +20,12 @@ freeStruc = do
 -- See 'Info' for the available constructors
 freeStruc' :: (MonadFree Info m) => m ()
 freeStruc' = do
-    icon Config.headphoneColor Config.songIcon
-    staticIO getSong
-    separator
-    --icon Config.emailColor Config.emailIcon
-    staticIO getUnreadEmails
-    separator
+    -- icon Config.headphoneColor Config.songIcon
+    -- staticIO getSong
+    -- separator
+    -- icon Config.emailColor Config.emailIcon
+    -- staticIO getUnreadEmails
+    -- separator
     script getRam
     separator
     scriptState getNetAverage
@@ -33,11 +33,15 @@ freeStruc' = do
     separator
     scriptState getCpuAverage
     script getCpuTemp
-    script getCpuRpm
+    --script getCpuRpm
     separator
-    icon Config.unameColor Config.unameIcon
+    -- icon Config.unameColor Config.unameIcon
     static _uname
     --separator
     --script getUptime
+    separator
+    script getMuted
+    separator
+    script getVolume
     separator
     script getTime
